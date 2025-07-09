@@ -1,3 +1,4 @@
+
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -6,15 +7,13 @@ const fileUpload = require('express-fileupload');
 const fs = require('fs');
 
 const app = express();
-
-// Ensure 'db/' directory exists
 const dbDir = path.join(__dirname, 'db');
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
 
-const dbFile = path.join(dbDir, 'database.db'); // ✅ corretto .sqlite
+const dbFile = path.join(dbDir, 'database.db');
 const db = new sqlite3.Database(dbFile);
 
-// Initialize database
+// Inizializzazione db
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
@@ -40,9 +39,19 @@ app.use(session({
   saveUninitialized: true
 }));
 
-app.get('/', (req, res) => {
-  res.redirect('/login.html');
-});
+function requireLogin(req, res, next) {
+  if (!req.session.user) return res.redirect('/login.html');
+  next();
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.session.user || req.session.user.role !== 'admin') {
+    return res.redirect('/dashboard.html');
+  }
+  next();
+}
+
+app.get('/', (req, res) => res.redirect('/login.html'));
 
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
@@ -61,17 +70,23 @@ app.get('/logout', (req, res) => {
   res.redirect('/login.html');
 });
 
-app.get('/api/files', (req, res) => {
-  if (!req.session.user) return res.status(401).json([]);
-  const userFolder = path.join(__dirname, 'public/uploads', req.session.user.username);
-  const requestedFolder = path.join(userFolder, req.query.folder || '');
+app.post('/create-user', requireAdmin, (req, res) => {
+  const { username, password, role } = req.body;
+  if (!username || !password || !role) return res.redirect('/admin.html');
+  db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [username, password, role], (err) => {
+    return res.redirect('/admin.html');
+  });
+});
 
+app.get('/api/files', requireLogin, (req, res) => {
+  const baseFolder = path.join(__dirname, 'public/uploads');
+  const requestedFolder = path.join(baseFolder, req.query.folder || '');
   if (!fs.existsSync(requestedFolder)) return res.json([]);
 
   const items = fs.readdirSync(requestedFolder, { withFileTypes: true });
   const result = items.map(item => {
     const fullPath = path.join(requestedFolder, item.name);
-    const relPath = path.relative(userFolder, fullPath).replace(/\\/g, '/');
+    const relPath = path.relative(baseFolder, fullPath).replace(/\\/g, '/');
     return {
       name: item.name,
       path: relPath,
@@ -82,17 +97,15 @@ app.get('/api/files', (req, res) => {
   res.json(result);
 });
 
-app.post('/upload', (req, res) => {
-  if (!req.session.user || !req.files) return res.redirect('/login.html');
+app.post('/upload', requireLogin, (req, res) => {
+  if (!req.files) return res.redirect('/dashboard.html');
 
-  const userFolder = path.join(__dirname, 'public/uploads', req.session.user.username);
-  if (!fs.existsSync(userFolder)) fs.mkdirSync(userFolder, { recursive: true });
-
+  const baseFolder = path.join(__dirname, 'public/uploads');
   const files = Array.isArray(req.files.file) ? req.files.file : [req.files.file];
 
   files.forEach(file => {
-    const relativePath = file.name.replace(/\\\\/g, '/');
-    const fullPath = path.join(userFolder, relativePath);
+    const relativePath = file.name.replace(/\\/g, '/');
+    const fullPath = path.join(baseFolder, relativePath);
     const folderPath = path.dirname(fullPath);
     fs.mkdirSync(folderPath, { recursive: true });
 
@@ -108,26 +121,25 @@ app.post('/upload', (req, res) => {
     }
 
     file.mv(targetPath, (err) => {
-      if (err) console.error("Errore nel salvataggio:", err);
+      if (err) console.error("Errore salvataggio:", err);
     });
   });
 
   res.redirect('/dashboard.html');
 });
 
-app.get('/download/*', (req, res) => {
-  if (!req.session.user) return res.status(401).end();
-  const userFolder = path.join(__dirname, 'public/uploads', req.session.user.username);
-  const filePath = path.normalize(path.join(userFolder, req.params[0]));
-  if (!filePath.startsWith(userFolder)) return res.status(403).end();
+app.get('/download/*', requireLogin, (req, res) => {
+  const baseFolder = path.join(__dirname, 'public/uploads');
+  const filePath = path.normalize(path.join(baseFolder, req.params[0]));
+  if (!filePath.startsWith(baseFolder)) return res.status(403).end();
   res.download(filePath);
 });
 
-app.get('/delete/*', (req, res) => {
-  if (!req.session.user) return res.redirect('/login.html');
-  const userFolder = path.join(__dirname, 'public/uploads', req.session.user.username);
-  const filePath = path.normalize(path.join(userFolder, req.params[0]));
-  if (!filePath.startsWith(userFolder)) return res.redirect('/dashboard.html');
+app.get('/delete/*', requireLogin, (req, res) => {
+  if (req.session.user.role !== 'admin') return res.redirect('/dashboard.html');
+  const baseFolder = path.join(__dirname, 'public/uploads');
+  const filePath = path.normalize(path.join(baseFolder, req.params[0]));
+  if (!filePath.startsWith(baseFolder)) return res.redirect('/dashboard.html');
   if (fs.existsSync(filePath)) {
     fs.rmSync(filePath, { recursive: true, force: true });
   }
@@ -135,5 +147,5 @@ app.get('/delete/*', (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log("✅ Server avviato su http://localhost:3000");
+  console.log("✅ Server attivo su http://localhost:3000");
 });

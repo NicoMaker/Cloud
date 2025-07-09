@@ -1,20 +1,36 @@
+
 <!DOCTYPE html>
 <html>
-
 <head>
-  <title>Dashboard</title>
+  <title>Gestione File</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    #currentPath { font-weight: bold; margin-bottom: 10px; }
+  </style>
 </head>
-
 <body class="container mt-3">
-  <h2>Benvenuto</h2>
-  <a href="/logout" class="btn btn-danger mb-3">Logout</a>
-  <form method="POST" action="/upload" enctype="multipart/form-data" class="mb-3">
-    <input type="file" name="file" multiple webkitdirectory directory class="form-control">
-    <button class="btn btn-success mt-2">Carica</button>
-  </form>
-  <ul id="fileList" class="list-group"></ul>
-  <script src="js/files.js"></script>
-</body>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>File Manager</h2>
+    <div>
+      <a href="/logout" class="btn btn-danger">Logout</a>
+      <a href="/admin.html" class="btn btn-warning">Crea Utente</a>
+    </div>
+  </div>
 
+  <div id="currentPath">/</div>
+
+  <form method="POST" action="/upload" enctype="multipart/form-data" class="mb-4">
+    <label class="form-label">Carica singoli file:</label>
+    <input type="file" name="file" class="form-control mb-3" multiple>
+
+    <label class="form-label">Carica intera cartella:</label>
+    <input type="file" name="file" class="form-control" webkitdirectory directory>
+
+    <button class="btn btn-success mt-3">Carica</button>
+  </form>
+
+  <ul id="fileList" class="list-group"></ul>
+
+  <script src="js/main.js"></script>
+</body>
 </html>
