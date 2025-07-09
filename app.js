@@ -1,4 +1,3 @@
-
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -105,8 +104,7 @@ app.post('/upload', requireLogin, (req, res) => {
   files.forEach(file => {
     const relativePath = file.name.replace(/\\/g, '/');
     const fullPath = path.join(baseFolder, relativePath);
-    const folderPath = path.dirname(fullPath);
-    fs.mkdirSync(folderPath, { recursive: true });
+    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
 
     let targetPath = fullPath;
     let count = 1;
@@ -145,13 +143,10 @@ app.get('/delete/*', requireLogin, (req, res) => {
   res.redirect('/dashboard.html');
 });
 
-app.listen(3000, () => {
-  console.log("✅ Server attivo su http://localhost:3000");
-});
+// ✅ ROTTE EXTRA
 
-// extra routes
 app.get('/api/users', requireAdmin, (req, res) => {
-  db.all("SELECT id, username, role FROM users", (err, rows) => {
+  db.all("SELECT id, username, password, role FROM users", (err, rows) => {
     res.json(rows);
   });
 });
@@ -166,23 +161,16 @@ app.post('/delete-user', requireAdmin, (req, res) => {
 app.post('/update-user', requireAdmin, (req, res) => {
   const { id, username, password, role } = req.body;
   if (!id || !username || !role) return res.redirect('/admin.html');
-  const params = [username, role, id];
-  let sql = "UPDATE users SET username = ?, role = ?";
-
-  if (password && password.trim() !== '') {
-    sql = "UPDATE users SET username = ?, role = ?, password = ?";
-    params.splice(2, 0, password); // insert password at index 2
-    params.push(id); // id again for WHERE
-  }
-
-  sql += " WHERE id = ?";
-  db.run(sql, params, () => {
+  db.run("UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?", [username, password, role, id], () => {
     res.redirect('/admin.html');
   });
 });
 
-
 app.get('/session-info', (req, res) => {
   const role = req.session?.user?.role || 'guest';
   res.json({ role });
+});
+
+app.listen(3000, () => {
+  console.log("✅ Server attivo su http://localhost:3000");
 });
