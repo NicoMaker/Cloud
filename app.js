@@ -11,7 +11,7 @@ const app = express();
 const dbDir = path.join(__dirname, 'db');
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
 
-const dbFile = path.join(dbDir, 'database.db');
+const dbFile = path.join(dbDir, 'database.sqlite'); // ✅ corretto .sqlite
 const db = new sqlite3.Database(dbFile);
 
 // Initialize database
@@ -64,46 +64,70 @@ app.get('/logout', (req, res) => {
 app.get('/api/files', (req, res) => {
   if (!req.session.user) return res.status(401).json([]);
   const userFolder = path.join(__dirname, 'public/uploads', req.session.user.username);
-  const getFiles = (dir) => {
-    const items = fs.readdirSync(dir, { withFileTypes: true });
-    return items.map(item => {
-      const fullPath = path.join(dir, item.name);
-      const relPath = path.relative(userFolder, fullPath).replace(/\\/g, '/');
-      return {
-        name: item.name,
-        path: relPath,
-        type: item.isDirectory() ? 'folder' : 'file'
-      };
-    });
-  };
-  const folder = path.join(userFolder, req.query.folder || '');
-  if (!fs.existsSync(folder)) return res.json([]);
-  res.json(getFiles(folder));
+  const requestedFolder = path.join(userFolder, req.query.folder || '');
+
+  if (!fs.existsSync(requestedFolder)) return res.json([]);
+
+  const items = fs.readdirSync(requestedFolder, { withFileTypes: true });
+  const result = items.map(item => {
+    const fullPath = path.join(requestedFolder, item.name);
+    const relPath = path.relative(userFolder, fullPath).replace(/\\/g, '/');
+    return {
+      name: item.name,
+      path: relPath,
+      type: item.isDirectory() ? 'folder' : 'file'
+    };
+  });
+
+  res.json(result);
 });
 
 app.post('/upload', (req, res) => {
   if (!req.session.user || !req.files) return res.redirect('/login.html');
+
   const userFolder = path.join(__dirname, 'public/uploads', req.session.user.username);
   if (!fs.existsSync(userFolder)) fs.mkdirSync(userFolder, { recursive: true });
 
   const files = Array.isArray(req.files.file) ? req.files.file : [req.files.file];
+
   files.forEach(file => {
-    const uploadPath = path.join(userFolder, file.name);
-    file.mv(uploadPath);
+    const relativePath = file.name.replace(/\\\\/g, '/');
+    const fullPath = path.join(userFolder, relativePath);
+    const folderPath = path.dirname(fullPath);
+    fs.mkdirSync(folderPath, { recursive: true });
+
+    let targetPath = fullPath;
+    let count = 1;
+    const ext = path.extname(fullPath);
+    const base = path.basename(fullPath, ext);
+    const dir = path.dirname(fullPath);
+
+    while (fs.existsSync(targetPath)) {
+      targetPath = path.join(dir, `${base} (${count})${ext}`);
+      count++;
+    }
+
+    file.mv(targetPath, (err) => {
+      if (err) console.error("Errore nel salvataggio:", err);
+    });
   });
 
   res.redirect('/dashboard.html');
 });
 
 app.get('/download/*', (req, res) => {
+  if (!req.session.user) return res.status(401).end();
   const userFolder = path.join(__dirname, 'public/uploads', req.session.user.username);
-  const filePath = path.join(userFolder, req.params[0]);
+  const filePath = path.normalize(path.join(userFolder, req.params[0]));
+  if (!filePath.startsWith(userFolder)) return res.status(403).end();
   res.download(filePath);
 });
 
 app.get('/delete/*', (req, res) => {
+  if (!req.session.user) return res.redirect('/login.html');
   const userFolder = path.join(__dirname, 'public/uploads', req.session.user.username);
-  const filePath = path.join(userFolder, req.params[0]);
+  const filePath = path.normalize(path.join(userFolder, req.params[0]));
+  if (!filePath.startsWith(userFolder)) return res.redirect('/dashboard.html');
   if (fs.existsSync(filePath)) {
     fs.rmSync(filePath, { recursive: true, force: true });
   }
