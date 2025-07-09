@@ -11,7 +11,7 @@ const app = express();
 const dbDir = path.join(__dirname, 'db');
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
 
-const dbFile = path.join(dbDir, 'database.sqlite'); // ✅ corretto .sqlite
+const dbFile = path.join(dbDir, 'database.db'); // ✅ corretto .sqlite
 const db = new sqlite3.Database(dbFile);
 
 // Initialize database
