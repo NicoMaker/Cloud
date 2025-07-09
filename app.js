@@ -162,3 +162,21 @@ app.post('/delete-user', requireAdmin, (req, res) => {
     res.redirect('/admin.html');
   });
 });
+
+app.post('/update-user', requireAdmin, (req, res) => {
+  const { id, username, password, role } = req.body;
+  if (!id || !username || !role) return res.redirect('/admin.html');
+  const params = [username, role, id];
+  let sql = "UPDATE users SET username = ?, role = ?";
+
+  if (password && password.trim() !== '') {
+    sql = "UPDATE users SET username = ?, role = ?, password = ?";
+    params.splice(2, 0, password); // insert password at index 2
+    params.push(id); // id again for WHERE
+  }
+
+  sql += " WHERE id = ?";
+  db.run(sql, params, () => {
+    res.redirect('/admin.html');
+  });
+});
