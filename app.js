@@ -13,7 +13,6 @@ if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
 const dbFile = path.join(dbDir, 'database.db');
 const db = new sqlite3.Database(dbFile);
 
-// Inizializzazione db
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
@@ -148,4 +147,18 @@ app.get('/delete/*', requireLogin, (req, res) => {
 
 app.listen(3000, () => {
   console.log("✅ Server attivo su http://localhost:3000");
+});
+
+// extra routes
+app.get('/api/users', requireAdmin, (req, res) => {
+  db.all("SELECT id, username, role FROM users", (err, rows) => {
+    res.json(rows);
+  });
+});
+
+app.post('/delete-user', requireAdmin, (req, res) => {
+  const id = parseInt(req.body.id);
+  db.run("DELETE FROM users WHERE id = ?", [id], () => {
+    res.redirect('/admin.html');
+  });
 });

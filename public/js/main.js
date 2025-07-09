@@ -1,3 +1,4 @@
+
 window.onload = function () {
   loadFiles('');
 };
@@ -19,22 +20,29 @@ function loadFiles(folderPath) {
         list.appendChild(backBtn);
       }
 
+      files.sort((a, b) => a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'folder' ? -1 : 1);
+
       files.forEach(file => {
         const li = document.createElement('li');
         li.className = 'list-group-item d-flex justify-content-between align-items-center';
-        li.innerHTML = file.type === 'folder'
-          ? `📁 <a href="#" onclick="loadFiles('${file.path}')">${file.name}</a>`
-          : `📄 ${file.name}`;
+        if (file.type === 'folder') {
+          li.innerHTML = `📁 <strong><a href="#" onclick="loadFiles('${file.path}')">${file.name}</a></strong>`;
+        } else {
+          li.innerHTML = `📄 ${file.name}`;
+        }
 
         const actions = document.createElement('span');
         if (file.type === 'file') {
           actions.innerHTML = `
             <a href="/download/${file.path}" class="btn btn-sm btn-primary">Scarica</a>
-            <a href="/delete/${file.path}" class="btn btn-sm btn-danger">Elimina</a>
           `;
         } else {
-          actions.innerHTML = `
-            <a href="/delete/${file.path}" class="btn btn-sm btn-danger">Elimina cartella</a>
+          actions.innerHTML = '';
+        }
+
+        if (window.userRole === 'admin') {
+          actions.innerHTML += `
+            <a href="/delete/${file.path}" class="btn btn-sm btn-danger ms-2">Elimina</a>
           `;
         }
 
