@@ -89,7 +89,13 @@ app.post('/upload', (req, res) => {
   const files = Array.isArray(req.files.file) ? req.files.file : [req.files.file];
   files.forEach(file => {
     const uploadPath = path.join(userFolder, file.name);
-    file.mv(uploadPath);
+    
+    const relativePath = file.name;
+    const fullPath = path.join(userFolder, relativePath);
+    const folderPath = path.dirname(fullPath);
+    fs.mkdirSync(folderPath, { recursive: true });
+    file.mv(fullPath);
+    
   });
 
   res.redirect('/dashboard.html');
