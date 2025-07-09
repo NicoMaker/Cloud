@@ -180,3 +180,9 @@ app.post('/update-user', requireAdmin, (req, res) => {
     res.redirect('/admin.html');
   });
 });
+
+
+app.get('/session-info', (req, res) => {
+  const role = req.session?.user?.role || 'guest';
+  res.json({ role });
+});
