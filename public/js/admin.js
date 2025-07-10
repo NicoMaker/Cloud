@@ -82,51 +82,110 @@ function updateRequirementIndicators(requirements) {
 function loadUsers() {
     fetch("/api/users")
         .then((res) => res.json())
-        .then((users) => {
+        .then((data) => {
             const table = document.getElementById("userTable")
             table.innerHTML = ""
 
-            users.forEach((user) => {
-                const row = document.createElement("tr")
-                row.className = "fade-in"
+            if (data.users) {
+                // Mostra statistiche
+                console.log(`📊 Statistiche utenti: ${data.totalUsers} totali, ${data.adminCount} admin`)
 
-                const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString("it-IT") : "N/A"
-                const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString("it-IT") : "Mai"
+                // Mostra statistiche nella console
+                if (data.adminCount > 1) {
+                    console.log(`👥 Sistema multi-admin: ${data.adminCount} amministratori attivi`)
+                } else {
+                    console.log(`⚠️ Sistema con un solo admin: protezione attiva`)
+                }
 
-                row.innerHTML = `
-          <td><strong>#${user.id}</strong></td>
-          <td>
-              <i class="fas fa-user me-2"></i>
-              ${user.username}
-          </td>
-          <td>
-              <span class="badge ${user.role === "admin" ? "bg-danger" : "bg-primary"}">
-                  <i class="fas ${user.role === "admin" ? "fa-crown" : "fa-user"} me-1"></i>
-                  ${user.role.toUpperCase()}
+                data.users.forEach((user) => {
+                    const row = document.createElement("tr")
+                    row.className = "fade-in"
+
+                    const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString("it-IT") : "N/A"
+                    const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString("it-IT") : "Mai"
+
+                    // Determina lo stato di protezione
+                    let protectionBadge = ""
+                    if (user.isProtected) {
+                        protectionBadge = `
+              <span class="badge bg-warning text-dark ms-1" title="Ultimo amministratore del sistema - Non eliminabile">
+                <i class="fas fa-shield-alt"></i> Ultimo Admin
               </span>
-          </td>
-          <td><small class="text-muted">${createdDate}</small></td>
-          <td><small class="text-muted">${lastLogin}</small></td>
-          <td>
-              <button class="btn btn-outline-primary btn-sm me-1" onclick="editUser(${user.id}, '${user.username}', '${user.role}')">
-                  <i class="fas fa-edit"></i> Modifica
-              </button>
-              ${user.id !== 1
-                        ? `
-                  <button class="btn btn-outline-danger btn-sm" onclick="deleteUser(${user.id}, '${user.username}')">
-                      <i class="fas fa-trash"></i> Elimina
-                  </button>
-              `
-                        : `
-                  <span class="text-muted small">
-                      <i class="fas fa-shield-alt me-1"></i>Protetto
-                  </span>
-              `
+            `
                     }
-          </td>
-        `
-                table.appendChild(row)
-            })
+
+                    row.innerHTML = `
+            <td><strong>#${user.id}</strong></td>
+            <td>
+                <i class="fas fa-user me-2"></i>
+                ${user.username}
+            </td>
+            <td>
+                <span class="badge ${user.role === "admin" ? "bg-danger" : "bg-primary"}">
+                    <i class="fas ${user.role === "admin" ? "fa-crown" : "fa-user"} me-1"></i>
+                    ${user.role.toUpperCase()}
+                </span>
+                ${protectionBadge}
+            </td>
+            <td><small class="text-muted">${createdDate}</small></td>
+            <td><small class="text-muted">${lastLogin}</small></td>
+            <td>
+                <button class="btn btn-outline-primary btn-sm me-1" 
+                        onclick="editUser(${user.id}, '${user.username}', '${user.role}', ${user.canChangeRole})"
+                        ${!user.canChangeRole ? 'title="Non puoi modificare l\'ultimo amministratore"' : ""}>
+                    <i class="fas fa-edit"></i> Modifica
+                </button>
+                ${user.canDelete
+                            ? `
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteUser(${user.id}, '${user.username}')">
+                        <i class="fas fa-trash"></i> Elimina
+                    </button>
+                `
+                            : `
+                    <span class="text-muted small" title="Non puoi eliminare l'ultimo amministratore">
+                        <i class="fas fa-shield-alt me-1"></i>Protetto
+                    </span>
+                `
+                        }
+            </td>
+          `
+                    table.appendChild(row)
+                })
+            } else {
+                // Fallback per formato vecchio
+                data.forEach((user) => {
+                    const row = document.createElement("tr")
+                    row.className = "fade-in"
+
+                    const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString("it-IT") : "N/A"
+                    const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString("it-IT") : "Mai"
+
+                    row.innerHTML = `
+            <td><strong>#${user.id}</strong></td>
+            <td>
+                <i class="fas fa-user me-2"></i>
+                ${user.username}
+            </td>
+            <td>
+                <span class="badge ${user.role === "admin" ? "bg-danger" : "bg-primary"}">
+                    <i class="fas ${user.role === "admin" ? "fa-crown" : "fa-user"} me-1"></i>
+                    ${user.role.toUpperCase()}
+                </span>
+            </td>
+            <td><small class="text-muted">${createdDate}</small></td>
+            <td><small class="text-muted">${lastLogin}</small></td>
+            <td>
+                <button class="btn btn-outline-primary btn-sm me-1" onclick="editUser(${user.id}, '${user.username}', '${user.role}', true)">
+                    <i class="fas fa-edit"></i> Modifica
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="deleteUser(${user.id}, '${user.username}')">
+                    <i class="fas fa-trash"></i> Elimina
+                </button>
+            </td>
+          `
+                    table.appendChild(row)
+                })
+            }
         })
         .catch((err) => {
             console.error("Failed to load users:", err)
@@ -134,11 +193,42 @@ function loadUsers() {
         })
 }
 
-function editUser(id, username, role) {
+function editUser(id, username, role, canChangeRole = true) {
     document.getElementById("editUserId").value = id
     document.getElementById("editUsername").value = username
     document.getElementById("editPassword").value = ""
-    document.getElementById("editRole").value = role
+
+    const roleSelect = document.getElementById("editRole")
+    roleSelect.value = role
+
+    // Disabilita il cambio ruolo se non permesso
+    if (!canChangeRole && role === "admin") {
+        roleSelect.disabled = true
+        roleSelect.title = "Non puoi cambiare il ruolo dell'ultimo amministratore"
+
+        // Aggiungi un avviso nel modal
+        const modalBody = roleSelect.closest(".modal-body")
+        let warningDiv = modalBody.querySelector(".admin-protection-warning")
+
+        if (!warningDiv) {
+            warningDiv = document.createElement("div")
+            warningDiv.className = "admin-protection-warning alert alert-warning mt-2"
+            warningDiv.innerHTML = `
+        <i class="fas fa-shield-alt me-2"></i>
+        <strong>Amministratore Protetto:</strong> Non puoi cambiare il ruolo dell'ultimo amministratore del sistema.
+      `
+            modalBody.appendChild(warningDiv)
+        }
+    } else {
+        roleSelect.disabled = false
+        roleSelect.title = ""
+
+        // Rimuovi l'avviso se presente
+        const warningDiv = roleSelect.closest(".modal-body").querySelector(".admin-protection-warning")
+        if (warningDiv) {
+            warningDiv.remove()
+        }
+    }
 
     const modal = window.bootstrap.Modal.getOrCreateInstance(document.getElementById("editUserModal"))
     modal.show()
@@ -176,11 +266,20 @@ function checkUrlParams() {
             user_exists: "Nome utente già esistente.",
             update_failed: "Errore nell'aggiornamento utente.",
             delete_failed: "Errore nell'eliminazione utente.",
-            cannot_delete_admin: "Impossibile eliminare l'utente admin principale.",
+            cannot_delete_last_admin: "Non puoi eliminare l'ultimo amministratore.",
+            cannot_change_last_admin: "Non puoi cambiare il ruolo dell'ultimo amministratore.",
+            user_not_found: "Utente non trovato.",
+            invalid_user_id: "ID utente non valido.",
             weak_password: "Password troppo debole. " + (details || "Controlla i requisiti."),
             database_error: "Errore del database. Riprova più tardi.",
         }
-        showAlert(messages[error] || "Si è verificato un errore.", "danger")
+
+        let message = messages[error] || "Si è verificato un errore."
+        if (details && !messages[error]) {
+            message += ` Dettagli: ${decodeURIComponent(details)}`
+        }
+
+        showAlert(message, "danger")
     }
 }
 
@@ -224,6 +323,10 @@ style.textContent = `
           opacity: 1;
           transform: translateY(0);
       }
+  }
+  
+  .admin-protection-warning {
+      border-left: 4px solid #ffc107;
   }
 `
 document.head.appendChild(style)

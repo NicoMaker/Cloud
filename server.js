@@ -82,15 +82,40 @@ db.serialize(() => {
     )
   `)
 
-  // Crea admin con password sicura se non esiste
-  db.get("SELECT * FROM users WHERE username = 'admin'", (err, row) => {
-    if (!row) {
+  // Crea admin solo se non esistono admin
+  db.get("SELECT COUNT(*) as count FROM users WHERE role = 'admin'", (err, row) => {
+    if (!err && row.count === 0) {
       const hashedPassword = hashPassword("Admin123!")
       db.run("INSERT INTO users (username, password, role) VALUES ('admin', ?, 'admin')", [hashedPassword])
-      console.log("👤 Admin creato con password: Admin123!")
+      console.log("👤 Admin iniziale creato con password: Admin123!")
+      console.log("🔧 Puoi creare altri admin e poi eliminare quello iniziale se necessario")
+    } else if (!err && row.count > 0) {
+      console.log(`👥 Trovati ${row.count} amministratori esistenti`)
+      console.log("🛡️ Sistema multi-admin attivo: puoi gestire admin liberamente mantenendone almeno uno")
     }
   })
 })
+
+// Funzioni helper per gestione admin
+function countAdmins(callback) {
+  db.get("SELECT COUNT(*) as count FROM users WHERE role = 'admin'", callback)
+}
+
+function canDeleteAdmin(adminId, callback) {
+  countAdmins((err, row) => {
+    if (err) return callback(err, false)
+    // Può eliminare solo se ci sono più di 1 admin
+    callback(null, row.count > 1)
+  })
+}
+
+function canChangeAdminToUser(adminId, callback) {
+  countAdmins((err, row) => {
+    if (err) return callback(err, false)
+    // Può cambiare ruolo solo se ci sono più di 1 admin
+    callback(null, row.count > 1)
+  })
+}
 
 // Middleware
 app.use(express.static(path.join(__dirname, "public")))
@@ -102,6 +127,9 @@ app.use(
     limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
     useTempFiles: true,
     tempFileDir: "/tmp/",
+    preserveExtension: true,
+    safeFileNames: false, // Mantieni nomi originali
+    parseNested: true,
   }),
 )
 app.use(
@@ -109,14 +137,14 @@ app.use(
     secret: crypto.randomBytes(32).toString("hex"),
     resave: false,
     saveUninitialized: false,
-    rolling: true, // Rinnova la sessione ad ogni richiesta
+    rolling: true,
     cookie: {
-      secure: false, // Set to true in production with HTTPS
+      secure: false,
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: "lax", // Aiuta con le richieste AJAX
+      sameSite: "lax",
     },
-    name: "filemanager.sid", // Nome personalizzato per il cookie
+    name: "filemanager.sid",
   }),
 )
 
@@ -252,88 +280,125 @@ app.get("/api/files", requireLogin, (req, res) => {
   }
 })
 
-// Funzione avanzata per ricreare COMPLETAMENTE la struttura del file system
-function createCompleteFileSystemStructure(files, baseFolder) {
-  const fileSystemMap = new Map() // Mappa completa del file system
-  const allDirectories = new Set() // Tutte le directory da creare
-  const filesByDirectory = new Map() // File organizzati per directory
+// Funzione avanzata per ricreare PERFETTAMENTE la struttura del file system
+function createPerfectFileSystemStructure(files, baseFolder) {
+  const fileSystemMap = new Map()
+  const allDirectories = new Set()
+  const filesByDirectory = new Map()
+  const directoryHierarchy = new Map()
 
-  console.log("=== ANALISI COMPLETA STRUTTURA FILE SYSTEM ===")
+  console.log("=== ANALISI PERFETTA STRUTTURA FILE SYSTEM ===")
   console.log(`📁 Base folder: ${baseFolder}`)
   console.log(`📄 File totali da processare: ${files.length}`)
 
-  // FASE 1: Analisi completa di ogni file e costruzione mappa file system
+  // FASE 1: Analisi completa e costruzione mappa gerarchica
   files.forEach((file, index) => {
     let fullRelativePath = file.name
 
-    // Usa webkitRelativePath per mantenere la struttura originale
+    // Priorità assoluta al webkitRelativePath
     if (file.webkitRelativePath && file.webkitRelativePath.trim() !== "") {
       fullRelativePath = file.webkitRelativePath
     }
 
-    // Normalizza il percorso
+    // Normalizza il percorso mantenendo la struttura originale
     fullRelativePath = fullRelativePath.replace(/\\/g, "/").replace(/^\/+/, "")
 
-    console.log(`\n📄 File ${index + 1}: ${fullRelativePath}`)
+    console.log(`\n📄 File ${index + 1}: "${fullRelativePath}"`)
 
     // Analizza il percorso completo
-    const pathParts = fullRelativePath.split("/")
-    const fileName = pathParts[pathParts.length - 1]
-    const directoryParts = pathParts.slice(0, -1)
+    const pathSegments = fullRelativePath.split("/")
+    const fileName = pathSegments[pathSegments.length - 1]
+    const directorySegments = pathSegments.slice(0, -1)
 
-    console.log(`   📂 Directory parts: [${directoryParts.join(" → ")}]`)
-    console.log(`   📄 File name: ${fileName}`)
+    console.log(`   📂 Segmenti directory: [${directorySegments.join(" → ")}]`)
+    console.log(`   📄 Nome file: "${fileName}"`)
 
-    // Crea TUTTE le directory nel percorso (anche quelle intermedie vuote)
-    let currentPath = ""
-    directoryParts.forEach((dirPart, dirIndex) => {
-      if (dirIndex > 0) currentPath += "/"
-      currentPath += dirPart
+    // Costruisci TUTTE le directory nel percorso (incluse quelle intermedie)
+    let currentDirectoryPath = ""
+    directorySegments.forEach((segment, segmentIndex) => {
+      if (segmentIndex > 0) currentDirectoryPath += "/"
+      currentDirectoryPath += segment
 
-      allDirectories.add(currentPath)
-      console.log(`      📁 Directory identificata: "${currentPath}"`)
+      allDirectories.add(currentDirectoryPath)
+      console.log(`      📁 Directory mappata: "${currentDirectoryPath}"`)
 
-      // Inizializza la directory nella mappa se non esiste
-      if (!filesByDirectory.has(currentPath)) {
-        filesByDirectory.set(currentPath, [])
+      // Costruisci gerarchia
+      const parentPath = segmentIndex > 0 ? directorySegments.slice(0, segmentIndex).join("/") : ""
+      if (!directoryHierarchy.has(parentPath)) {
+        directoryHierarchy.set(parentPath, new Set())
+      }
+      directoryHierarchy.get(parentPath).add(currentDirectoryPath)
+
+      // Inizializza directory nella mappa file
+      if (!filesByDirectory.has(currentDirectoryPath)) {
+        filesByDirectory.set(currentDirectoryPath, [])
       }
     })
 
-    // Aggiungi il file alla directory finale (o root se non ci sono directory)
-    const finalDirectory = directoryParts.length > 0 ? directoryParts.join("/") : ""
+    // Assegna il file alla directory finale
+    const finalDirectory = directorySegments.length > 0 ? directorySegments.join("/") : ""
 
     if (!filesByDirectory.has(finalDirectory)) {
       filesByDirectory.set(finalDirectory, [])
     }
 
-    filesByDirectory.get(finalDirectory).push({
+    const fileInfo = {
       originalFile: file,
       fileName: fileName,
       fullPath: fullRelativePath,
       directory: finalDirectory,
-      isRootFile: directoryParts.length === 0
-    })
+      isRootFile: directorySegments.length === 0,
+      pathSegments: pathSegments,
+      directorySegments: directorySegments,
+    }
+
+    filesByDirectory.get(finalDirectory).push(fileInfo)
+    fileSystemMap.set(fullRelativePath, fileInfo)
 
     console.log(`   ✅ File assegnato alla directory: "${finalDirectory || "ROOT"}"`)
   })
 
-  // FASE 2: Creazione fisica di TUTTE le directory
+  // FASE 2: Creazione fisica ordinata delle directory
   console.log("\n=== CREAZIONE FISICA STRUTTURA DIRECTORY ===")
   console.log(`📁 Directory totali da creare: ${allDirectories.size}`)
 
   const createdDirectories = new Set()
-  const sortedDirectories = Array.from(allDirectories).sort()
+  const failedDirectories = new Set()
 
-  // Crea le directory in ordine gerarchico
+  // Ordina le directory per profondità (prima le più superficiali)
+  const sortedDirectories = Array.from(allDirectories).sort((a, b) => {
+    const depthA = a.split("/").length
+    const depthB = b.split("/").length
+    if (depthA !== depthB) return depthA - depthB
+    return a.localeCompare(b)
+  })
+
+  console.log("\n📋 Ordine di creazione directory:")
+  sortedDirectories.forEach((dir, index) => {
+    const depth = dir.split("/").length
+    const indent = "  ".repeat(depth)
+    console.log(`${index + 1}. ${indent}📁 "${dir}" (profondità: ${depth})`)
+  })
+
+  // Crea le directory in ordine
   sortedDirectories.forEach((directoryPath) => {
     const fullDirectoryPath = path.join(baseFolder, directoryPath)
     const depth = directoryPath.split("/").length
     const indent = "  ".repeat(depth)
 
-    console.log(`\n${indent}📁 Creando: "${directoryPath}"`)
-    console.log(`${indent}   Percorso completo: ${fullDirectoryPath}`)
+    console.log(`\n${indent}🏗️  Creando: "${directoryPath}"`)
+    console.log(`${indent}   Percorso assoluto: ${fullDirectoryPath}`)
 
     try {
+      // Verifica che la directory padre esista
+      const parentDir = path.dirname(fullDirectoryPath)
+      if (!fs.existsSync(parentDir)) {
+        console.log(`${indent}   ⚠️  Directory padre mancante: ${parentDir}`)
+        console.log(`${indent}   🔧 Creazione directory padre...`)
+        fs.mkdirSync(parentDir, { recursive: true })
+      }
+
+      // Crea la directory
       if (!fs.existsSync(fullDirectoryPath)) {
         fs.mkdirSync(fullDirectoryPath, { recursive: true })
         console.log(`${indent}   ✅ Directory creata con successo`)
@@ -343,82 +408,92 @@ function createCompleteFileSystemStructure(files, baseFolder) {
         createdDirectories.add(directoryPath)
       }
 
-      // Verifica che la directory sia stata creata correttamente
-      if (fs.existsSync(fullDirectoryPath)) {
-        const stats = fs.statSync(fullDirectoryPath)
-        if (stats.isDirectory()) {
-          console.log(`${indent}   ✅ Verifica: Directory valida`)
-        } else {
-          console.log(`${indent}   ❌ Errore: Percorso esiste ma non è una directory`)
-        }
+      // Verifica finale
+      const stats = fs.statSync(fullDirectoryPath)
+      if (stats.isDirectory()) {
+        console.log(`${indent}   ✅ Verifica: Directory valida e accessibile`)
+      } else {
+        console.log(`${indent}   ❌ Errore: Percorso esiste ma non è una directory`)
+        failedDirectories.add(directoryPath)
       }
     } catch (error) {
-      console.error(`${indent}   ❌ Errore creazione directory:`, error)
+      console.error(`${indent}   ❌ Errore creazione directory:`, error.message)
+      failedDirectories.add(directoryPath)
     }
   })
 
-  // FASE 3: Verifica struttura creata e preparazione mappa file
-  console.log("\n=== VERIFICA STRUTTURA FILE SYSTEM CREATA ===")
+  // FASE 3: Verifica struttura e generazione statistiche
+  console.log("\n=== VERIFICA STRUTTURA FILE SYSTEM ===")
 
-  // Mostra la struttura ad albero
-  console.log("🌳 Struttura ad albero creata:")
+  const maxDepth = allDirectories.size > 0 ? Math.max(...Array.from(allDirectories).map((d) => d.split("/").length)) : 0
+  const totalFiles = files.length
+  const totalDirectories = allDirectories.size
+  const rootFiles = filesByDirectory.get("") || []
+
+  console.log("📊 STATISTICHE FINALI:")
+  console.log(`   📁 Directory create: ${createdDirectories.size}/${totalDirectories}`)
+  console.log(`   📄 File totali: ${totalFiles}`)
+  console.log(`   📊 Profondità massima: ${maxDepth}`)
+  console.log(`   🏠 File nella root: ${rootFiles.length}`)
+  console.log(`   ❌ Directory fallite: ${failedDirectories.size}`)
+
+  if (failedDirectories.size > 0) {
+    console.log("❌ Directory non create:")
+    failedDirectories.forEach((dir) => console.log(`   - ${dir}`))
+  }
+
+  // Mostra struttura ad albero finale
+  console.log("\n🌳 STRUTTURA AD ALBERO FINALE:")
   console.log("📁 ROOT")
 
   // File nella root
-  const rootFiles = filesByDirectory.get("") || []
-  rootFiles.forEach(fileInfo => {
+  rootFiles.forEach((fileInfo) => {
     console.log(`   📄 ${fileInfo.fileName}`)
   })
 
-  // Directory e loro contenuti
+  // Directory e contenuti
   sortedDirectories.forEach((dirPath) => {
-    const depth = dirPath.split("/").length
-    const indent = "  ".repeat(depth + 1)
-    const dirName = dirPath.split("/").pop()
-    const parentIndent = "  ".repeat(depth)
+    if (createdDirectories.has(dirPath)) {
+      const depth = dirPath.split("/").length
+      const indent = "  ".repeat(depth + 1)
+      const dirName = dirPath.split("/").pop()
+      const parentIndent = "  ".repeat(depth)
 
-    console.log(`${parentIndent}📁 ${dirName}/`)
+      console.log(`${parentIndent}📁 ${dirName}/`)
 
-    const filesInDir = filesByDirectory.get(dirPath) || []
-    filesInDir.forEach(fileInfo => {
-      console.log(`${indent}📄 ${fileInfo.fileName}`)
-    })
+      const filesInDir = filesByDirectory.get(dirPath) || []
+      filesInDir.forEach((fileInfo) => {
+        console.log(`${indent}📄 ${fileInfo.fileName}`)
+      })
+    }
   })
-
-  // Calcola statistiche
-  const maxDepth = allDirectories.size > 0 ? Math.max(...Array.from(allDirectories).map(d => d.split("/").length)) : 0
-  const totalFiles = files.length
-  const totalDirectories = allDirectories.size
-
-  console.log("\n=== STATISTICHE STRUTTURA ===")
-  console.log(`📊 Directory totali: ${totalDirectories}`)
-  console.log(`📊 File totali: ${totalFiles}`)
-  console.log(`📊 Profondità massima: ${maxDepth}`)
-  console.log(`📊 File nella root: ${rootFiles.length}`)
 
   return {
     allDirectories: Array.from(allDirectories),
     createdDirectories: Array.from(createdDirectories),
+    failedDirectories: Array.from(failedDirectories),
     filesByDirectory: filesByDirectory,
+    fileSystemMap: fileSystemMap,
+    directoryHierarchy: directoryHierarchy,
     totalDirectories: totalDirectories,
     totalFiles: totalFiles,
     maxDepth: maxDepth,
     rootFiles: rootFiles.length,
-    structureMap: fileSystemMap
+    success: failedDirectories.size === 0,
   }
 }
 
-// Enhanced upload with complete folder structure creation
+// Enhanced upload with perfect folder structure creation
 app.post("/upload", requireLogin, (req, res) => {
   console.log("=== RICHIESTA UPLOAD RICEVUTA ===")
   console.log("👤 Utente autenticato:", req.session.user.username, `(${req.session.user.role})`)
 
-  // IMPORTANTE: Imposta sempre header JSON
+  // Imposta header JSON
   res.setHeader("Content-Type", "application/json")
 
   try {
-    if (!req.files) {
-      console.log("Nessun file trovato nella richiesta")
+    if (!req.files || Object.keys(req.files).length === 0) {
+      console.log("❌ Nessun file trovato nella richiesta")
       return res.status(400).json({
         success: false,
         error: "Nessun file caricato",
@@ -426,6 +501,7 @@ app.post("/upload", requireLogin, (req, res) => {
       })
     }
 
+    // Estrai i file dalla richiesta
     let files = null
     if (req.files.files) {
       files = req.files.files
@@ -433,12 +509,12 @@ app.post("/upload", requireLogin, (req, res) => {
       const fileKeys = Object.keys(req.files)
       if (fileKeys.length > 0) {
         files = req.files[fileKeys[0]]
-        console.log(`Usando campo file: ${fileKeys[0]}`)
+        console.log(`📁 Usando campo file: ${fileKeys[0]}`)
       }
     }
 
     if (!files) {
-      console.log("Nessun file trovato in nessun campo")
+      console.log("❌ Nessun file trovato in nessun campo")
       return res.status(400).json({
         success: false,
         error: "Nessun file trovato",
@@ -448,12 +524,12 @@ app.post("/upload", requireLogin, (req, res) => {
 
     const baseFolder = path.join(__dirname, "public/uploads")
     if (!fs.existsSync(baseFolder)) {
-      console.log("Creando directory uploads")
+      console.log("🏗️  Creando directory uploads base")
       fs.mkdirSync(baseFolder, { recursive: true })
     }
 
     const fileArray = Array.isArray(files) ? files : [files]
-    console.log(`Processando ${fileArray.length} file`)
+    console.log(`📄 Processando ${fileArray.length} file`)
 
     if (fileArray.length === 0) {
       return res.status(400).json({
@@ -463,126 +539,145 @@ app.post("/upload", requireLogin, (req, res) => {
       })
     }
 
-    // FASE 1: Analizza e crea struttura file system completa
-    console.log("=== FASE 1: ANALISI E CREAZIONE STRUTTURA FILE SYSTEM ===")
-    const structureInfo = createCompleteFileSystemStructure(fileArray, baseFolder)
+    // FASE 1: Analizza e crea struttura file system perfetta
+    console.log("=== FASE 1: ANALISI E CREAZIONE STRUTTURA PERFETTA ===")
+    const structureInfo = createPerfectFileSystemStructure(fileArray, baseFolder)
+
+    if (!structureInfo.success) {
+      console.log("❌ Errore nella creazione della struttura")
+      return res.status(500).json({
+        success: false,
+        error: "Errore creazione struttura",
+        message: `Impossibile creare ${structureInfo.failedDirectories.length} directory`,
+        failedDirectories: structureInfo.failedDirectories,
+      })
+    }
 
     const uploadResults = []
     let processedCount = 0
 
-    // Sostituisci la funzione processFile nell'upload con questa versione migliorata:
-
-    const processFile = (file, index) => {
+    // Funzione per processare ogni file con precisione
+    const processFileWithPerfectPlacement = (file, index) => {
       return new Promise((resolve) => {
         try {
-          console.log(`\n--- Processando file ${index + 1}/${fileArray.length} ---`)
-          console.log(`📄 Nome file originale: ${file.name}`)
-          console.log(`📁 webkitRelativePath: ${file.webkitRelativePath || "non disponibile"}`)
+          console.log(`\n--- PROCESSAMENTO PERFETTO FILE ${index + 1}/${fileArray.length} ---`)
+          console.log(`📄 Nome file originale: "${file.name}"`)
+          console.log(`📁 webkitRelativePath: "${file.webkitRelativePath || "non disponibile"}"`)
 
-          let relativePath = file.name
+          let targetRelativePath = file.name
 
-          // PRIORITÀ ASSOLUTA al webkitRelativePath per mantenere struttura
+          // PRIORITÀ ASSOLUTA al webkitRelativePath per struttura perfetta
           if (file.webkitRelativePath && file.webkitRelativePath.trim() !== "") {
-            relativePath = file.webkitRelativePath
-            console.log(`✅ Usando webkitRelativePath per struttura: ${relativePath}`)
+            targetRelativePath = file.webkitRelativePath
+            console.log(`✅ Usando webkitRelativePath per posizionamento perfetto: "${targetRelativePath}"`)
           } else {
-            console.log(`⚠️  webkitRelativePath non disponibile, file andrà nella root: ${relativePath}`)
+            console.log(`⚠️  webkitRelativePath non disponibile, file andrà nella root: "${targetRelativePath}"`)
           }
 
-          // Normalizza il percorso
-          relativePath = relativePath.replace(/\\/g, "/").replace(/^\/+/, "")
-          const fullPath = path.join(baseFolder, relativePath)
+          // Normalizza il percorso mantenendo la struttura
+          targetRelativePath = targetRelativePath.replace(/\\/g, "/").replace(/^\/+/, "")
+          const targetFullPath = path.join(baseFolder, targetRelativePath)
 
-          console.log(`📁 Percorso finale calcolato: ${fullPath}`)
-          console.log(`📂 Directory di destinazione: ${path.dirname(fullPath)}`)
+          console.log(`📍 Percorso di destinazione calcolato: "${targetFullPath}"`)
 
-          // Security check
-          const normalizedPath = path.normalize(fullPath)
-          if (!normalizedPath.startsWith(path.normalize(baseFolder))) {
-            console.error(`❌ Violazione sicurezza: ${normalizedPath}`)
+          // Security check rigoroso
+          const normalizedTargetPath = path.normalize(targetFullPath)
+          const normalizedBaseFolder = path.normalize(baseFolder)
+
+          if (!normalizedTargetPath.startsWith(normalizedBaseFolder)) {
+            console.error(`❌ VIOLAZIONE SICUREZZA: "${normalizedTargetPath}"`)
             processedCount++
             uploadResults.push({
               filename: file.name,
               status: "error",
-              error: "Percorso file non valido",
+              error: "Percorso file non sicuro",
+              originalPath: targetRelativePath,
             })
             resolve()
             return
           }
 
-          // Verifica e crea directory di destinazione se necessaria
-          const targetDirectory = path.dirname(fullPath)
-          console.log(`🔍 Verifica directory di destinazione: ${targetDirectory}`)
+          // Verifica directory di destinazione
+          const targetDirectory = path.dirname(targetFullPath)
+          const relativeTargetDir = path.relative(baseFolder, targetDirectory).replace(/\\/g, "/")
+
+          console.log(`🔍 Verifica directory di destinazione: "${targetDirectory}"`)
+          console.log(`📂 Directory relativa: "${relativeTargetDir || "ROOT"}"`)
 
           if (!fs.existsSync(targetDirectory)) {
-            console.log(`❌ Directory mancante: ${targetDirectory}`)
-            console.log(`🔧 Creazione directory di emergenza...`)
+            console.log(`❌ ERRORE CRITICO: Directory mancante: "${targetDirectory}"`)
+            console.log(`🚨 Questo non dovrebbe accadere dopo la creazione della struttura!`)
 
             try {
+              console.log(`🔧 Creazione directory di emergenza...`)
               fs.mkdirSync(targetDirectory, { recursive: true })
-              console.log(`✅ Directory creata con successo: ${targetDirectory}`)
-            } catch (mkdirError) {
-              console.error(`❌ Errore creazione directory:`, mkdirError)
+              console.log(`✅ Directory di emergenza creata: "${targetDirectory}"`)
+            } catch (emergencyError) {
+              console.error(`❌ Errore creazione directory di emergenza:`, emergencyError)
               processedCount++
               uploadResults.push({
                 filename: file.name,
                 status: "error",
-                error: `Impossibile creare directory: ${mkdirError.message}`,
+                error: `Impossibile creare directory: ${emergencyError.message}`,
+                originalPath: targetRelativePath,
               })
               resolve()
               return
             }
           } else {
-            console.log(`✅ Directory esistente: ${targetDirectory}`)
+            console.log(`✅ Directory di destinazione esistente: "${targetDirectory}"`)
           }
 
-          // Gestisci conflitti nomi file mantenendo la struttura
-          let targetPath = fullPath
-          let count = 1
-          const ext = path.extname(fullPath)
-          const base = path.basename(fullPath, ext)
-          const dir = path.dirname(fullPath)
+          // Gestione conflitti nomi file intelligente
+          let finalTargetPath = targetFullPath
+          let conflictCounter = 1
+          const fileExtension = path.extname(targetFullPath)
+          const fileBaseName = path.basename(targetFullPath, fileExtension)
+          const fileDirectory = path.dirname(targetFullPath)
 
-          while (fs.existsSync(targetPath)) {
-            targetPath = path.join(dir, `${base}_${count}${ext}`)
-            count++
-            console.log(`🔄 Conflitto nome file, nuovo nome: ${path.basename(targetPath)}`)
+          while (fs.existsSync(finalTargetPath)) {
+            const newFileName = `${fileBaseName}_${conflictCounter}${fileExtension}`
+            finalTargetPath = path.join(fileDirectory, newFileName)
+            conflictCounter++
+            console.log(`🔄 Conflitto nome file, nuovo nome: "${newFileName}"`)
           }
 
-          // Mostra informazioni complete sul posizionamento
-          const relativeTargetPath = path.relative(baseFolder, targetPath).replace(/\\/g, "/")
-          const targetFolder = path.dirname(relativeTargetPath) !== "." ? path.dirname(relativeTargetPath) : null
+          // Informazioni complete sul posizionamento
+          const finalRelativePath = path.relative(baseFolder, finalTargetPath).replace(/\\/g, "/")
+          const finalDirectory = path.dirname(finalRelativePath) !== "." ? path.dirname(finalRelativePath) : null
 
-          console.log(`📁 Posizionamento finale:`)
-          console.log(`   📄 File: ${path.basename(targetPath)}`)
-          console.log(`   📂 Cartella: ${targetFolder || "ROOT"}`)
-          console.log(`   📍 Percorso completo: ${relativeTargetPath}`)
+          console.log(`📍 POSIZIONAMENTO FINALE:`)
+          console.log(`   📄 File: "${path.basename(finalTargetPath)}"`)
+          console.log(`   📂 Cartella: "${finalDirectory || "ROOT"}"`)
+          console.log(`   📍 Percorso completo: "${finalRelativePath}"`)
+          console.log(`   🎯 Percorso assoluto: "${finalTargetPath}"`)
 
-          // Sposta il file nella posizione finale
-          console.log(`🚀 Spostamento file in corso...`)
-          file.mv(targetPath, (err) => {
+          // Sposta il file nella posizione finale perfetta
+          console.log(`🚀 Spostamento file in posizione perfetta...`)
+          file.mv(finalTargetPath, (moveError) => {
             processedCount++
 
-            if (err) {
-              console.error(`❌ Errore spostamento ${file.name}:`, err)
+            if (moveError) {
+              console.error(`❌ Errore spostamento "${file.name}":`, moveError)
               uploadResults.push({
                 filename: file.name,
                 status: "error",
-                error: err.message,
-                originalPath: relativePath,
+                error: moveError.message,
+                originalPath: targetRelativePath,
+                targetPath: finalRelativePath,
               })
             } else {
-              console.log(`✅ File posizionato con successo: ${targetPath}`)
+              console.log(`✅ File posizionato perfettamente: "${finalTargetPath}"`)
 
-              // Salva nel database con informazioni complete
+              // Registra nel database con informazioni complete
               db.run(
                 "INSERT INTO file_uploads (filename, filepath, filesize, user_id) VALUES (?, ?, ?, ?)",
-                [path.basename(targetPath), relativeTargetPath, file.size, req.session.user.id],
-                (dbErr) => {
-                  if (dbErr) {
-                    console.error("❌ Errore database:", dbErr)
+                [path.basename(finalTargetPath), finalRelativePath, file.size, req.session.user.id],
+                (dbError) => {
+                  if (dbError) {
+                    console.error("❌ Errore registrazione database:", dbError)
                   } else {
-                    console.log(`✅ Registrato nel database: ${relativeTargetPath}`)
+                    console.log(`✅ Registrato nel database: "${finalRelativePath}"`)
                   }
                 },
               )
@@ -590,34 +685,37 @@ app.post("/upload", requireLogin, (req, res) => {
               uploadResults.push({
                 filename: file.name,
                 status: "success",
-                path: relativeTargetPath,
-                originalPath: relativePath,
-                folder: targetFolder,
-                structureLevel: targetFolder ? targetFolder.split("/").length : 0,
-                isInRoot: !targetFolder,
-                directoryPath: targetFolder || "ROOT",
+                path: finalRelativePath,
+                originalPath: targetRelativePath,
+                folder: finalDirectory,
+                structureLevel: finalDirectory ? finalDirectory.split("/").length : 0,
+                isInRoot: !finalDirectory,
+                directoryPath: finalDirectory || "ROOT",
+                finalFileName: path.basename(finalTargetPath),
+                wasRenamed: conflictCounter > 1,
               })
             }
 
-            // Aggiorna progresso
+            // Aggiorna progresso con informazioni dettagliate
             const percentage = Math.round((processedCount / fileArray.length) * 100)
             io.emit("uploadProgress", {
               processed: processedCount,
               total: fileArray.length,
               percentage: percentage,
               currentFile: file.name,
-              currentFolder: targetFolder || "ROOT"
+              currentFolder: finalDirectory || "ROOT",
+              currentPath: finalRelativePath,
             })
 
             resolve()
           })
-        } catch (error) {
-          console.error(`❌ Errore processamento ${file.name}:`, error)
+        } catch (processingError) {
+          console.error(`❌ Errore processamento "${file.name}":`, processingError)
           processedCount++
           uploadResults.push({
             filename: file.name,
             status: "error",
-            error: error.message,
+            error: processingError.message,
             originalPath: file.name,
           })
           resolve()
@@ -625,111 +723,139 @@ app.post("/upload", requireLogin, (req, res) => {
       })
     }
 
-    // FASE 2: Processa tutti i file mantenendo la struttura
-    console.log("\n=== FASE 2: PROCESSAMENTO FILE CON STRUTTURA ===")
-    Promise.all(fileArray.map((file, index) => processFile(file, index)))
-      .then(() => {
-        console.log("\n=== UPLOAD COMPLETATO CON STRUTTURA FILE SYSTEM ===")
+    // FASE 2: Processa tutti i file con posizionamento perfetto
+    console.log("\n=== FASE 2: PROCESSAMENTO FILE CON POSIZIONAMENTO PERFETTO ===")
+    Promise.all(fileArray.map((file, index) => processFileWithPerfectPlacement(file, index))).then(() => {
+      console.log("\n=== UPLOAD COMPLETATO CON STRUTTURA PERFETTA ===")
 
-        const successCount = uploadResults.filter((r) => r.status === "success").length
-        const errorCount = uploadResults.filter((r) => r.status === "error").length
+      const successCount = uploadResults.filter((r) => r.status === "success").length
+      const errorCount = uploadResults.filter((r) => r.status === "error").length
 
-        // Analizza struttura effettivamente creata
-        const foldersWithFiles = new Set()
-        const filesByFolder = new Map()
+      // Analizza distribuzione file per cartella
+      const fileDistribution = new Map()
+      const foldersWithFiles = new Set()
 
-        uploadResults.filter((r) => r.status === "success").forEach((result) => {
+      uploadResults
+        .filter((r) => r.status === "success")
+        .forEach((result) => {
           const folder = result.folder || "ROOT"
           foldersWithFiles.add(folder)
 
-          if (!filesByFolder.has(folder)) {
-            filesByFolder.set(folder, [])
+          if (!fileDistribution.has(folder)) {
+            fileDistribution.set(folder, [])
           }
-          filesByFolder.get(folder).push(result.filename)
+          fileDistribution.get(folder).push({
+            filename: result.finalFileName,
+            originalName: result.filename,
+            wasRenamed: result.wasRenamed,
+          })
         })
 
-        // Crea messaggio dettagliato
-        let message = `${successCount} file caricati con successo! `
-        message += `Struttura file system ricreata: ${structureInfo.totalDirectories} cartelle `
-        message += `(profondità ${structureInfo.maxDepth} livelli)`
+      // Messaggio di successo dettagliato
+      let successMessage = `${successCount} file caricati con successo! `
+      successMessage += `Struttura file system ricreata perfettamente: ${structureInfo.totalDirectories} cartelle `
+      successMessage += `(profondità ${structureInfo.maxDepth} livelli)`
 
-        if (structureInfo.rootFiles > 0) {
-          message += `, ${structureInfo.rootFiles} file nella root`
-        }
+      if (structureInfo.rootFiles > 0) {
+        successMessage += `, ${structureInfo.rootFiles} file nella root`
+      }
 
-        const response = {
-          success: successCount > 0,
-          results: uploadResults,
-          message: message,
-          total: fileArray.length,
-          successful: successCount,
-          errors: errorCount,
-          foldersCreated: structureInfo.totalDirectories,
-          folderStructure: structureInfo.allDirectories,
-          structureDetails: {
-            totalDirectories: structureInfo.totalDirectories,
-            totalFiles: structureInfo.totalFiles,
-            maxDepth: structureInfo.maxDepth,
-            rootFiles: structureInfo.rootFiles,
-            foldersWithFiles: foldersWithFiles.size,
-            directoryList: structureInfo.allDirectories,
-            fileDistribution: Object.fromEntries(filesByFolder),
-          },
-          fileSystemStructure: {
-            directories: structureInfo.allDirectories,
-            filesByDirectory: Object.fromEntries(structureInfo.filesByDirectory),
-            treeStructure: generateTreeStructure(structureInfo.allDirectories, filesByFolder),
-          }
-        }
+      const response = {
+        success: successCount > 0,
+        results: uploadResults,
+        message: successMessage,
+        total: fileArray.length,
+        successful: successCount,
+        errors: errorCount,
+        foldersCreated: structureInfo.totalDirectories,
+        folderStructure: structureInfo.allDirectories,
+        structureDetails: {
+          totalDirectories: structureInfo.totalDirectories,
+          totalFiles: structureInfo.totalFiles,
+          maxDepth: structureInfo.maxDepth,
+          rootFiles: structureInfo.rootFiles,
+          foldersWithFiles: foldersWithFiles.size,
+          directoryList: structureInfo.allDirectories,
+          fileDistribution: Object.fromEntries(fileDistribution),
+          createdDirectories: structureInfo.createdDirectories,
+          failedDirectories: structureInfo.failedDirectories,
+        },
+        fileSystemStructure: {
+          directories: structureInfo.allDirectories,
+          filesByDirectory: Object.fromEntries(structureInfo.filesByDirectory),
+          treeStructure: generatePerfectTreeStructure(structureInfo.allDirectories, fileDistribution),
+          hierarchyMap: Object.fromEntries(structureInfo.directoryHierarchy),
+        },
+        uploadQuality: {
+          structureIntegrity: structureInfo.success,
+          directorySuccessRate: (structureInfo.createdDirectories.length / structureInfo.totalDirectories) * 100,
+          fileSuccessRate: (successCount / fileArray.length) * 100,
+          perfectPlacement: errorCount === 0 && structureInfo.success,
+        },
+      }
 
-        console.log("✅ RIEPILOGO STRUTTURA FILE SYSTEM CREATA:")
-        console.log(`   📁 Directory totali: ${structureInfo.totalDirectories}`)
-        console.log(`   📄 File processati: ${successCount}/${fileArray.length}`)
-        console.log(`   📊 Profondità massima: ${structureInfo.maxDepth}`)
-        console.log(`   🏠 File nella root: ${structureInfo.rootFiles}`)
-        console.log(`   📂 Struttura directory:`)
+      console.log("✅ RIEPILOGO UPLOAD PERFETTO:")
+      console.log(
+        `   📁 Directory create: ${structureInfo.createdDirectories.length}/${structureInfo.totalDirectories}`,
+      )
+      console.log(`   📄 File processati: ${successCount}/${fileArray.length}`)
+      console.log(`   📊 Profondità massima: ${structureInfo.maxDepth}`)
+      console.log(`   🏠 File nella root: ${structureInfo.rootFiles}`)
+      console.log(`   🎯 Posizionamento perfetto: ${response.uploadQuality.perfectPlacement ? "SÌ" : "NO"}`)
 
-        structureInfo.allDirectories.forEach((dir) => {
-          const level = dir.split("/").length
-          const indent = "      " + "  ".repeat(level)
-          const filesInDir = filesByFolder.get(dir)?.length || 0
-          console.log(`${indent}📁 ${dir}/ (${filesInDir} file)`)
+      console.log(`\n📂 DISTRIBUZIONE FILE PER CARTELLA:`)
+      fileDistribution.forEach((files, folder) => {
+        console.log(`   📁 ${folder}: ${files.length} file`)
+        files.forEach((fileInfo) => {
+          const renameInfo = fileInfo.wasRenamed ? ` (rinominato da ${fileInfo.originalName})` : ""
+          console.log(`      📄 ${fileInfo.filename}${renameInfo}`)
         })
-
-        res.json(response)
       })
+
+      res.json(response)
+    })
   } catch (error) {
-    console.error("❌ Errore durante l'upload:", error)
-    res.status(500).json({ success: false, error: error.message })
+    console.error("❌ Errore critico durante l'upload:", error)
+    res.status(500).json({
+      success: false,
+      error: "Errore server critico",
+      message: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    })
   }
 })
 
-// Aggiungi questa funzione helper per generare la struttura ad albero
-function generateTreeStructure(directories, filesByFolder) {
+// Funzione helper per generare struttura ad albero perfetta
+function generatePerfectTreeStructure(directories, fileDistribution) {
   const tree = {
     name: "ROOT",
     type: "directory",
+    path: "",
     children: [],
-    files: filesByFolder.get("ROOT") || []
+    files: fileDistribution.get("ROOT") || [],
+    fileCount: (fileDistribution.get("ROOT") || []).length,
   }
 
   const sortedDirs = directories.sort()
 
-  sortedDirs.forEach(dirPath => {
+  sortedDirs.forEach((dirPath) => {
     const parts = dirPath.split("/")
     let current = tree
 
     parts.forEach((part, index) => {
       const currentPath = parts.slice(0, index + 1).join("/")
-      let found = current.children.find(child => child.name === part)
+      let found = current.children.find((child) => child.name === part)
 
       if (!found) {
+        const filesInDir = fileDistribution.get(currentPath) || []
         found = {
           name: part,
           type: "directory",
           path: currentPath,
           children: [],
-          files: filesByFolder.get(currentPath) || []
+          files: filesInDir,
+          fileCount: filesInDir.length,
+          depth: index + 1,
         }
         current.children.push(found)
       }
@@ -821,13 +947,31 @@ app.delete("/api/delete-all", requireAdmin, (req, res) => {
   }
 })
 
-// User management routes (Admin only)
+// User management routes (Admin only) with enhanced admin protection
 app.get("/api/users", requireAdmin, (req, res) => {
-  db.all("SELECT id, username, role, created_at, last_login FROM users", (err, rows) => {
+  db.all("SELECT id, username, role, created_at, last_login FROM users ORDER BY role DESC, username", (err, rows) => {
     if (err) {
       res.status(500).json({ error: "Database error" })
     } else {
-      res.json(rows)
+      // Aggiungi informazioni sui permessi per ogni utente
+      countAdmins((countErr, adminCount) => {
+        if (countErr) {
+          return res.status(500).json({ error: "Error counting admins" })
+        }
+
+        const usersWithPermissions = rows.map((user) => ({
+          ...user,
+          canDelete: user.role !== "admin" || adminCount.count > 1,
+          canChangeRole: user.role !== "admin" || adminCount.count > 1,
+          isProtected: user.role === "admin" && adminCount.count === 1,
+        }))
+
+        res.json({
+          users: usersWithPermissions,
+          adminCount: adminCount.count,
+          totalUsers: rows.length,
+        })
+      })
     }
   })
 })
@@ -845,6 +989,7 @@ app.post("/create-user", requireAdmin, (req, res) => {
     return res.redirect(`/admin.html?error=weak_password&details=${encodeURIComponent(passwordErrors.join(", "))}`)
   }
 
+  // Creazione libera di utenti e admin
   const hashedPassword = hashPassword(password)
 
   db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [username, hashedPassword, role], (err) => {
@@ -856,6 +1001,10 @@ app.post("/create-user", requireAdmin, (req, res) => {
         res.redirect("/admin.html?error=database_error")
       }
     } else {
+      console.log(`✅ Utente creato: ${username} (${role})`)
+      if (role === "admin") {
+        console.log("👑 Nuovo amministratore aggiunto al sistema")
+      }
       res.redirect("/admin.html?success=user_created")
     }
   })
@@ -876,22 +1025,57 @@ app.post("/update-user", requireAdmin, (req, res) => {
     }
   }
 
-  let query, params
-  if (password) {
-    const hashedPassword = hashPassword(password)
-    query = "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?"
-    params = [username, hashedPassword, role, id]
-  } else {
-    query = "UPDATE users SET username = ?, role = ? WHERE id = ?"
-    params = [username, role, id]
-  }
-
-  db.run(query, params, (err) => {
+  // Controlla se si sta tentando di cambiare un admin a user
+  db.get("SELECT role FROM users WHERE id = ?", [id], (err, user) => {
     if (err) {
       console.error("Database error:", err)
-      res.redirect("/admin.html?error=update_failed")
+      return res.redirect("/admin.html?error=database_error")
+    }
+
+    if (!user) {
+      return res.redirect("/admin.html?error=user_not_found")
+    }
+
+    // Se l'utente è admin e si sta tentando di cambiarlo a user
+    if (user.role === "admin" && role === "user") {
+      canChangeAdminToUser(id, (canChangeErr, canChange) => {
+        if (canChangeErr) {
+          console.error("Error checking admin change permission:", canChangeErr)
+          return res.redirect("/admin.html?error=database_error")
+        }
+
+        if (!canChange) {
+          return res.redirect(
+            "/admin.html?error=cannot_change_last_admin&details=Non puoi cambiare l'ultimo amministratore in utente",
+          )
+        }
+
+        updateUserInDatabase()
+      })
     } else {
-      res.redirect("/admin.html?success=user_updated")
+      updateUserInDatabase()
+    }
+
+    function updateUserInDatabase() {
+      let query, params
+      if (password) {
+        const hashedPassword = hashPassword(password)
+        query = "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?"
+        params = [username, hashedPassword, role, id]
+      } else {
+        query = "UPDATE users SET username = ?, role = ? WHERE id = ?"
+        params = [username, role, id]
+      }
+
+      db.run(query, params, (updateErr) => {
+        if (updateErr) {
+          console.error("Database error:", updateErr)
+          res.redirect("/admin.html?error=update_failed")
+        } else {
+          console.log(`✅ Utente aggiornato: ${username} (${role})`)
+          res.redirect("/admin.html?success=user_updated")
+        }
+      })
     }
   })
 })
@@ -899,16 +1083,50 @@ app.post("/update-user", requireAdmin, (req, res) => {
 app.post("/delete-user", requireAdmin, (req, res) => {
   const id = Number.parseInt(req.body.id)
 
-  if (id === 1) {
-    return res.redirect("/admin.html?error=cannot_delete_admin")
+  if (!id) {
+    return res.redirect("/admin.html?error=invalid_user_id")
   }
 
-  db.run("DELETE FROM users WHERE id = ?", [id], (err) => {
+  // Controlla se l'utente è admin e se può essere eliminato
+  db.get("SELECT role FROM users WHERE id = ?", [id], (err, user) => {
     if (err) {
       console.error("Database error:", err)
-      res.redirect("/admin.html?error=delete_failed")
+      return res.redirect("/admin.html?error=database_error")
+    }
+
+    if (!user) {
+      return res.redirect("/admin.html?error=user_not_found")
+    }
+
+    if (user.role === "admin") {
+      canDeleteAdmin(id, (canDeleteErr, canDelete) => {
+        if (canDeleteErr) {
+          console.error("Error checking admin delete permission:", canDeleteErr)
+          return res.redirect("/admin.html?error=database_error")
+        }
+
+        if (!canDelete) {
+          return res.redirect(
+            "/admin.html?error=cannot_delete_last_admin&details=Non puoi eliminare l'ultimo amministratore",
+          )
+        }
+
+        deleteUserFromDatabase()
+      })
     } else {
-      res.redirect("/admin.html?success=user_deleted")
+      deleteUserFromDatabase()
+    }
+
+    function deleteUserFromDatabase() {
+      db.run("DELETE FROM users WHERE id = ?", [id], (deleteErr) => {
+        if (deleteErr) {
+          console.error("Database error:", deleteErr)
+          res.redirect("/admin.html?error=delete_failed")
+        } else {
+          console.log(`✅ Utente eliminato: ID ${id}`)
+          res.redirect("/admin.html?success=user_deleted")
+        }
+      })
     }
   })
 })
@@ -950,5 +1168,7 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 3000
 server.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`)
+  console.log("👤 Admin credentials: admin / Admin123!")
   console.log("🔒 Password requirements: 8+ chars, uppercase, lowercase, number, special char")
+  console.log("🛡️  Admin protection: Last admin cannot be deleted or demoted")
 })
