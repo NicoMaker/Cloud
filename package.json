@@ -1,7 +1,8 @@
 {
-  "name": "cloud-system-enhanced",
-  "version": "1.0.0",
-  "main": "app.js",
+  "name": "advanced-file-manager",
+  "version": "2.0.0",
+  "description": "Advanced file manager with drag & drop, user management, and modern UI",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
@@ -10,6 +11,20 @@
     "express": "^4.18.2",
     "express-fileupload": "^1.4.0",
     "express-session": "^1.17.3",
-    "sqlite3": "^5.1.6"
-  }
+    "sqlite3": "^5.1.6",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "file-manager",
+    "upload",
+    "drag-drop",
+    "nodejs",
+    "express",
+    "sqlite"
+  ],
+  "author": "Advanced File Manager",
+  "license": "MIT"
 }
