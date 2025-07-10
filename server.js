@@ -86,8 +86,8 @@ db.serialize(() => {
   db.get("SELECT COUNT(*) as count FROM users WHERE role = 'admin'", (err, row) => {
     if (!err && row.count === 0) {
       const hashedPassword = hashPassword("Admin123!")
-      db.run("INSERT INTO users (username, password, role) VALUES ('admin', ?, 'admin')", [hashedPassword])
-      console.log("👤 Admin iniziale creato con password: Admin123!")
+      db.run("INSERT INTO users (username, password, role) VALUES ('Admin', ?, 'admin')", [hashedPassword])
+      console.log("👤 Admin iniziale creato con password: Admin123! e username Admin")
       console.log("🔧 Puoi creare altri admin e poi eliminare quello iniziale se necessario")
     } else if (!err && row.count > 0) {
       console.log(`👥 Trovati ${row.count} amministratori esistenti`)
