@@ -397,18 +397,29 @@ async function startUpload() {
         console.log("✅ Risposta caricamento:", data)
 
         if (data.success) {
-            let message = data.message
+            let message = `${data.successful} file caricati con successo!`
+
             if (data.foldersCreated > 0) {
-                message += ` Struttura di ${data.foldersCreated} cartelle creata.`
+                message += ` Struttura di ${data.foldersCreated} cartelle ricreata fedelmente.`
             }
+
+            if (data.structureDetails) {
+                const details = data.structureDetails
+                if (details.maxDepth > 0) {
+                    message += ` Profondità massima: ${details.maxDepth} livelli.`
+                }
+            }
+
             showToast(message, "success")
             clearSelection()
 
             // Mostra dettagli nel console
             if (data.folderStructure && data.folderStructure.length > 0) {
-                console.log("📁 Cartelle create:")
+                console.log("📁 Struttura cartelle ricreata:")
                 data.folderStructure.forEach((folder) => {
-                    console.log(`  📂 ${folder}`)
+                    const level = folder.split("/").length
+                    const indent = "  ".repeat(level)
+                    console.log(`${indent}📂 ${folder}`)
                 })
             }
 
@@ -582,11 +593,6 @@ function displayFiles(files, folderPath) {
 function refreshFiles() {
     loadFiles(currentPath)
     showToast("File aggiornati", "info")
-}
-
-function expandAll() {
-    // Funzione per espandere tutte le cartelle (implementazione futura)
-    showToast("Funzione in sviluppo", "info")
 }
 
 function deleteItem(path, name) {

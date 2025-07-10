@@ -252,70 +252,128 @@ app.get("/api/files", requireLogin, (req, res) => {
   }
 })
 
-// Funzione per creare la struttura completa delle cartelle
-function createDirectoryStructure(files, baseFolder) {
-  const createdDirs = new Set()
+// Funzione corretta per creare la struttura completa delle cartelle
+function createCompleteDirectoryStructure(files, baseFolder) {
+  const allFolders = new Set()
+  const folderMap = new Map()
 
-  console.log("=== CREAZIONE STRUTTURA CARTELLE ===")
+  console.log("=== ANALISI STRUTTURA CARTELLE COMPLETA ===")
   console.log(`Base folder: ${baseFolder}`)
+  console.log(`File da processare: ${files.length}`)
 
+  // FASE 1: Analizza tutti i file e identifica tutte le cartelle necessarie
   files.forEach((file, index) => {
     let filePath = file.name
 
-    // Usa webkitRelativePath se disponibile
+    // Usa webkitRelativePath se disponibile (per cartelle caricate)
     if (file.webkitRelativePath && file.webkitRelativePath !== file.name) {
       filePath = file.webkitRelativePath
     }
 
     filePath = filePath.replace(/\\/g, "/")
-    console.log(`File ${index + 1}: ${filePath}`)
+    console.log(`\n📄 File ${index + 1}: ${filePath}`)
 
     if (filePath.includes("/")) {
-      const dirPath = filePath.substring(0, filePath.lastIndexOf("/"))
-      console.log(`  -> Cartella necessaria: ${dirPath}`)
+      // File in una sottocartella - identifica TUTTE le cartelle nel percorso
+      const pathParts = filePath.split("/")
+      const fileName = pathParts.pop() // Rimuovi il nome del file
 
-      const pathParts = dirPath.split("/")
+      // Crea tutti i percorsi delle cartelle padre
       let currentPath = ""
-
       pathParts.forEach((part, partIndex) => {
         currentPath += (partIndex > 0 ? "/" : "") + part
-        const fullDirPath = path.join(baseFolder, currentPath)
+        allFolders.add(currentPath)
+        console.log(`  📁 Cartella identificata: ${currentPath}`)
 
-        console.log(`    Controllo cartella: ${currentPath} -> ${fullDirPath}`)
-
-        if (!createdDirs.has(currentPath) && !fs.existsSync(fullDirPath)) {
-          console.log(`    ✅ Creando: ${fullDirPath}`)
-          fs.mkdirSync(fullDirPath, { recursive: true })
-          createdDirs.add(currentPath)
-        } else if (fs.existsSync(fullDirPath)) {
-          console.log(`    ⚠️  Già esistente: ${fullDirPath}`)
-          createdDirs.add(currentPath)
+        // Aggiungi alla mappa per tracking
+        if (!folderMap.has(currentPath)) {
+          folderMap.set(currentPath, [])
         }
       })
+
+      // Aggiungi il file alla cartella finale
+      const finalFolder = pathParts.join("/")
+      if (!folderMap.has(finalFolder)) {
+        folderMap.set(finalFolder, [])
+      }
+      folderMap.get(finalFolder).push({
+        file: file,
+        fileName: fileName,
+        fullPath: filePath,
+      })
     } else {
-      console.log(`  -> File nella radice: ${filePath}`)
+      // File nella radice
+      console.log(`  🏠 File nella radice: ${filePath}`)
+      if (!folderMap.has("")) {
+        folderMap.set("", [])
+      }
+      folderMap.get("").push({
+        file: file,
+        fileName: filePath,
+        fullPath: filePath,
+      })
     }
   })
 
-  console.log(`\n📁 Cartelle create/verificate: ${createdDirs.size}`)
-  Array.from(createdDirs)
-    .sort()
-    .forEach((dir) => {
-      console.log(`  📂 ${dir}`)
-    })
+  // FASE 2: Crea fisicamente tutte le cartelle identificate
+  console.log("\n=== CREAZIONE FISICA CARTELLE ===")
+  console.log(`Cartelle da creare: ${allFolders.size}`)
 
-  return createdDirs
+  const createdDirs = new Set()
+  const sortedFolders = Array.from(allFolders).sort()
+
+  sortedFolders.forEach((folderPath) => {
+    const fullDirPath = path.join(baseFolder, folderPath)
+    console.log(`\n📁 Creazione: ${folderPath}`)
+    console.log(`   Percorso completo: ${fullDirPath}`)
+
+    try {
+      if (!fs.existsSync(fullDirPath)) {
+        console.log(`   ✅ Creando cartella: ${fullDirPath}`)
+        fs.mkdirSync(fullDirPath, { recursive: true })
+        createdDirs.add(folderPath)
+      } else {
+        console.log(`   ⚠️  Cartella già esistente: ${fullDirPath}`)
+        createdDirs.add(folderPath)
+      }
+    } catch (error) {
+      console.error(`   ❌ Errore creazione cartella ${folderPath}:`, error)
+    }
+  })
+
+  // FASE 3: Verifica struttura creata
+  console.log("\n=== VERIFICA STRUTTURA CREATA ===")
+  console.log(`📁 Cartelle create/verificate: ${createdDirs.size}`)
+
+  if (createdDirs.size > 0) {
+    console.log("📂 Struttura cartelle:")
+    Array.from(createdDirs)
+      .sort()
+      .forEach((dir) => {
+        const level = dir.split("/").length
+        const indent = "  ".repeat(level)
+        const filesInFolder = folderMap.get(dir)?.length || 0
+        console.log(`${indent}📁 ${dir} (${filesInFolder} file diretti)`)
+      })
+  }
+
+  // Calcola profondità massima
+  const maxDepth = createdDirs.size > 0 ? Math.max(...Array.from(createdDirs).map((f) => f.split("/").length)) : 0
+
+  return {
+    createdDirs,
+    folderMap,
+    totalFolders: createdDirs.size,
+    totalFiles: files.length,
+    maxDepth: maxDepth,
+    allFolders: Array.from(allFolders),
+  }
 }
 
 // Enhanced upload with complete folder structure creation
 app.post("/upload", requireLogin, (req, res) => {
   console.log("=== RICHIESTA UPLOAD RICEVUTA ===")
   console.log("👤 Utente autenticato:", req.session.user.username, `(${req.session.user.role})`)
-  console.log("📊 Headers richiesta:", {
-    "content-type": req.headers["content-type"],
-    "content-length": req.headers["content-length"],
-    "user-agent": req.headers["user-agent"]?.substring(0, 50) + "...",
-  })
 
   // IMPORTANTE: Imposta sempre header JSON
   res.setHeader("Content-Type", "application/json")
@@ -367,9 +425,9 @@ app.post("/upload", requireLogin, (req, res) => {
       })
     }
 
-    // FASE 1: Crea struttura cartelle
-    console.log("=== FASE 1: CREAZIONE STRUTTURA CARTELLE ===")
-    const createdDirs = createDirectoryStructure(fileArray, baseFolder)
+    // FASE 1: Analizza e crea struttura cartelle completa
+    console.log("=== FASE 1: ANALISI E CREAZIONE STRUTTURA ===")
+    const structureInfo = createCompleteDirectoryStructure(fileArray, baseFolder)
 
     const uploadResults = []
     let processedCount = 0
@@ -383,16 +441,19 @@ app.post("/upload", requireLogin, (req, res) => {
 
           let relativePath = file.name
 
-          if (file.webkitRelativePath && file.webkitRelativePath !== file.name) {
+          // IMPORTANTE: Usa SEMPRE webkitRelativePath se disponibile per mantenere struttura
+          if (file.webkitRelativePath && file.webkitRelativePath.trim() !== "") {
             relativePath = file.webkitRelativePath
-            console.log(`Usando webkitRelativePath: ${relativePath}`)
+            console.log(`✅ Usando webkitRelativePath: ${relativePath}`)
+          } else {
+            console.log(`⚠️  webkitRelativePath non disponibile, usando nome file: ${relativePath}`)
           }
 
           relativePath = relativePath.replace(/\\/g, "/")
           relativePath = relativePath.replace(/^\/+/, "")
 
           const fullPath = path.join(baseFolder, relativePath)
-          console.log(`Percorso finale: ${fullPath}`)
+          console.log(`📁 Percorso finale: ${fullPath}`)
 
           // Security check
           const normalizedPath = path.normalize(fullPath)
@@ -408,10 +469,29 @@ app.post("/upload", requireLogin, (req, res) => {
             return
           }
 
+          // Verifica che la cartella esista
           const dirPath = path.dirname(fullPath)
+          console.log(`🔍 Verifica cartella: ${dirPath}`)
+
           if (!fs.existsSync(dirPath)) {
-            console.log(`⚠️  Cartella mancante, creazione: ${dirPath}`)
-            fs.mkdirSync(dirPath, { recursive: true })
+            console.log(`❌ ERRORE: Cartella non esistente: ${dirPath}`)
+            console.log(`🔧 Creazione di emergenza...`)
+            try {
+              fs.mkdirSync(dirPath, { recursive: true })
+              console.log(`✅ Cartella creata: ${dirPath}`)
+            } catch (mkdirError) {
+              console.error(`❌ Errore creazione cartella:`, mkdirError)
+              processedCount++
+              uploadResults.push({
+                filename: file.name,
+                status: "error",
+                error: `Impossibile creare cartella: ${mkdirError.message}`,
+              })
+              resolve()
+              return
+            }
+          } else {
+            console.log(`✅ Cartella esistente: ${dirPath}`)
           }
 
           // Gestisci conflitti nomi file
@@ -424,9 +504,10 @@ app.post("/upload", requireLogin, (req, res) => {
           while (fs.existsSync(targetPath)) {
             targetPath = path.join(dir, `${base}_${count}${ext}`)
             count++
+            console.log(`🔄 Conflitto nome, nuovo nome: ${path.basename(targetPath)}`)
           }
 
-          console.log(`📁 Spostamento da temp a: ${targetPath}`)
+          console.log(`📁 Spostamento file: ${file.name} -> ${targetPath}`)
           file.mv(targetPath, (err) => {
             processedCount++
 
@@ -441,7 +522,9 @@ app.post("/upload", requireLogin, (req, res) => {
               console.log(`✅ File salvato: ${targetPath}`)
 
               const relativeDbPath = path.relative(baseFolder, targetPath).replace(/\\/g, "/")
+              const folderPath = path.dirname(relativeDbPath) !== "." ? path.dirname(relativeDbPath) : null
 
+              // Salva nel database
               db.run(
                 "INSERT INTO file_uploads (filename, filepath, filesize, user_id) VALUES (?, ?, ?, ?)",
                 [path.basename(targetPath), relativeDbPath, file.size, req.session.user.id],
@@ -459,7 +542,8 @@ app.post("/upload", requireLogin, (req, res) => {
                 status: "success",
                 path: relativeDbPath,
                 originalPath: relativePath,
-                folder: path.dirname(relativeDbPath) !== "." ? path.dirname(relativeDbPath) : null,
+                folder: folderPath,
+                structureLevel: folderPath ? folderPath.split("/").length : 0,
               })
             }
 
@@ -485,27 +569,42 @@ app.post("/upload", requireLogin, (req, res) => {
       })
     }
 
-    // FASE 2: Processa file
-    console.log("\n=== FASE 2: PROCESSAMENTO FILE ===")
+    // FASE 2: Processa tutti i file mantenendo la struttura
+    console.log("\n=== FASE 2: PROCESSAMENTO FILE CON STRUTTURA ===")
     Promise.all(fileArray.map((file, index) => processFile(file, index)))
       .then(() => {
-        console.log("\n=== UPLOAD COMPLETATO ===")
+        console.log("\n=== UPLOAD COMPLETATO CON STRUTTURA ===")
 
         const successCount = uploadResults.filter((r) => r.status === "success").length
         const errorCount = uploadResults.filter((r) => r.status === "error").length
 
+        // Analizza struttura effettivamente creata
+        const foldersWithFiles = new Set()
+        uploadResults.filter((r) => r.status === "success" && r.folder).forEach((r) => foldersWithFiles.add(r.folder))
+
         const response = {
           success: successCount > 0,
           results: uploadResults,
-          message: `${successCount} di ${fileArray.length} file caricati con successo. ${createdDirs.size} cartelle create.`,
+          message: `${successCount} file caricati con successo! Struttura di ${structureInfo.totalFolders} cartelle ricreata fedelmente (profondità ${structureInfo.maxDepth} livelli).`,
           total: fileArray.length,
           successful: successCount,
           errors: errorCount,
-          foldersCreated: createdDirs.size,
-          folderStructure: Array.from(createdDirs),
+          foldersCreated: structureInfo.totalFolders,
+          folderStructure: structureInfo.allFolders,
+          structureDetails: {
+            totalFolders: structureInfo.totalFolders,
+            foldersWithFiles: foldersWithFiles.size,
+            maxDepth: structureInfo.maxDepth,
+            folderList: structureInfo.allFolders,
+          },
         }
 
-        console.log("✅ Invio risposta JSON:", response)
+        console.log("✅ Invio risposta con struttura completa:")
+        console.log(`   📁 Cartelle create: ${structureInfo.totalFolders}`)
+        console.log(`   📄 File processati: ${successCount}/${fileArray.length}`)
+        console.log(`   📊 Profondità massima: ${structureInfo.maxDepth}`)
+        console.log(`   📂 Struttura:`, structureInfo.allFolders)
+
         res.json(response)
       })
       .catch((error) => {
