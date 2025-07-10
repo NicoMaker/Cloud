@@ -295,15 +295,28 @@ function createPerfectFileSystemStructure(files, baseFolder) {
   files.forEach((file, index) => {
     let fullRelativePath = file.name
 
-    // Priorità assoluta al webkitRelativePath
+    // DEBUG: Mostra tutte le proprietà del file
+    console.log(`\n📄 File ${index + 1}: "${file.name}"`)
+    console.log(`   📁 webkitRelativePath: "${file.webkitRelativePath || "NON DISPONIBILE"}"`)
+    console.log(`   📄 originalFilename: "${file.originalFilename || "NON DISPONIBILE"}"`)
+    console.log(`   🔍 Tutte le proprietà file:`, Object.keys(file))
+
+    // PRIORITÀ ASSOLUTA al webkitRelativePath per cartelle
     if (file.webkitRelativePath && file.webkitRelativePath.trim() !== "") {
       fullRelativePath = file.webkitRelativePath
+      console.log(`✅ CARTELLA RILEVATA - Usando webkitRelativePath: "${fullRelativePath}"`)
+    } else if (file.originalFilename && file.originalFilename !== file.name && file.originalFilename.includes("/")) {
+      // Fallback per originalFilename se contiene percorso
+      fullRelativePath = file.originalFilename
+      console.log(`✅ PERCORSO ALTERNATIVO - Usando originalFilename: "${fullRelativePath}"`)
+    } else {
+      console.log(`⚠️  NESSUN PERCORSO CARTELLA - File andrà nella root: "${fullRelativePath}"`)
     }
 
     // Normalizza il percorso mantenendo la struttura originale
     fullRelativePath = fullRelativePath.replace(/\\/g, "/").replace(/^\/+/, "")
 
-    console.log(`\n📄 File ${index + 1}: "${fullRelativePath}"`)
+    console.log(`🎯 Percorso finale calcolato: "${fullRelativePath}"`)
 
     // Analizza il percorso completo
     const pathSegments = fullRelativePath.split("/")
@@ -311,7 +324,13 @@ function createPerfectFileSystemStructure(files, baseFolder) {
     const directorySegments = pathSegments.slice(0, -1)
 
     console.log(`   📂 Segmenti directory: [${directorySegments.join(" → ")}]`)
-    console.log(`   📄 Nome file: "${fileName}"`)
+    console.log(`   📄 Nome file finale: "${fileName}"`)
+
+    if (directorySegments.length > 0) {
+      console.log(`   🎯 File andrà nella cartella: "${directorySegments.join("/")}"`)
+    } else {
+      console.log(`   🏠 File andrà nella ROOT`)
+    }
 
     // Costruisci TUTTE le directory nel percorso (incluse quelle intermedie)
     let currentDirectoryPath = ""
@@ -356,6 +375,7 @@ function createPerfectFileSystemStructure(files, baseFolder) {
     fileSystemMap.set(fullRelativePath, fileInfo)
 
     console.log(`   ✅ File assegnato alla directory: "${finalDirectory || "ROOT"}"`)
+    console.log(`   📍 Percorso completo finale: "${fullRelativePath}"`)
   })
 
   // FASE 2: Creazione fisica ordinata delle directory
@@ -559,6 +579,29 @@ app.post("/upload", requireLogin, (req, res) => {
     // Funzione per processare ogni file con precisione
     const processFileWithPerfectPlacement = (file, index) => {
       return new Promise((resolve) => {
+        console.log(`\n--- PROCESSAMENTO PERFETTO FILE ${index + 1}/${fileArray.length} ---`)
+        console.log(`📄 Nome file originale: "${file.name}"`)
+        console.log(`📁 webkitRelativePath: "${file.webkitRelativePath || "non disponibile"}"`)
+        console.log(`📄 originalFilename: "${file.originalFilename || "non disponibile"}"`)
+
+        let targetRelativePath = file.name
+
+        // PRIORITÀ ASSOLUTA al webkitRelativePath per struttura perfetta
+        if (file.webkitRelativePath && file.webkitRelativePath.trim() !== "") {
+          targetRelativePath = file.webkitRelativePath
+          console.log(
+            `✅ CARTELLA RILEVATA - Usando webkitRelativePath per posizionamento perfetto: "${targetRelativePath}"`,
+          )
+        } else if (
+          file.originalFilename &&
+          file.originalFilename !== file.name &&
+          file.originalFilename.includes("/")
+        ) {
+          targetRelativePath = file.originalFilename
+          console.log(`✅ PERCORSO ALTERNATIVO - Usando originalFilename: "${targetRelativePath}"`)
+        } else {
+          console.log(`⚠️  NESSUN PERCORSO CARTELLA - File andrà nella root: "${targetRelativePath}"`)
+        }
         try {
           console.log(`\n--- PROCESSAMENTO PERFETTO FILE ${index + 1}/${fileArray.length} ---`)
           console.log(`📄 Nome file originale: "${file.name}"`)
@@ -574,11 +617,12 @@ app.post("/upload", requireLogin, (req, res) => {
             console.log(`⚠️  webkitRelativePath non disponibile, file andrà nella root: "${targetRelativePath}"`)
           }
 
-          // Normalizza il percorso mantenendo la struttura
+          // Normalizza il percorso mantenendo la struttura ESATTA
           targetRelativePath = targetRelativePath.replace(/\\/g, "/").replace(/^\/+/, "")
           const targetFullPath = path.join(baseFolder, targetRelativePath)
 
           console.log(`📍 Percorso di destinazione calcolato: "${targetFullPath}"`)
+          console.log(`📁 Percorso relativo: "${targetRelativePath}"`)
 
           // Security check rigoroso
           const normalizedTargetPath = path.normalize(targetFullPath)
@@ -597,35 +641,30 @@ app.post("/upload", requireLogin, (req, res) => {
             return
           }
 
-          // Verifica directory di destinazione
+          // Verifica e crea directory di destinazione se necessaria
           const targetDirectory = path.dirname(targetFullPath)
-          const relativeTargetDir = path.relative(baseFolder, targetDirectory).replace(/\\/g, "/")
+          console.log(`🔍 Directory di destinazione: "${targetDirectory}"`)
 
-          console.log(`🔍 Verifica directory di destinazione: "${targetDirectory}"`)
-          console.log(`📂 Directory relativa: "${relativeTargetDir || "ROOT"}"`)
-
+          // Verifica se la directory esiste, se no la crea
           if (!fs.existsSync(targetDirectory)) {
-            console.log(`❌ ERRORE CRITICO: Directory mancante: "${targetDirectory}"`)
-            console.log(`🚨 Questo non dovrebbe accadere dopo la creazione della struttura!`)
-
+            console.log(`🏗️ Creando directory mancante: "${targetDirectory}"`)
             try {
-              console.log(`🔧 Creazione directory di emergenza...`)
               fs.mkdirSync(targetDirectory, { recursive: true })
-              console.log(`✅ Directory di emergenza creata: "${targetDirectory}"`)
-            } catch (emergencyError) {
-              console.error(`❌ Errore creazione directory di emergenza:`, emergencyError)
+              console.log(`✅ Directory creata: "${targetDirectory}"`)
+            } catch (dirError) {
+              console.error(`❌ Errore creazione directory:`, dirError)
               processedCount++
               uploadResults.push({
                 filename: file.name,
                 status: "error",
-                error: `Impossibile creare directory: ${emergencyError.message}`,
+                error: `Impossibile creare directory: ${dirError.message}`,
                 originalPath: targetRelativePath,
               })
               resolve()
               return
             }
           } else {
-            console.log(`✅ Directory di destinazione esistente: "${targetDirectory}"`)
+            console.log(`✅ Directory già esistente: "${targetDirectory}"`)
           }
 
           // Gestione conflitti nomi file intelligente
@@ -642,18 +681,41 @@ app.post("/upload", requireLogin, (req, res) => {
             console.log(`🔄 Conflitto nome file, nuovo nome: "${newFileName}"`)
           }
 
-          // Informazioni complete sul posizionamento
+          // Informazioni complete sul posizionamento FINALE
           const finalRelativePath = path.relative(baseFolder, finalTargetPath).replace(/\\/g, "/")
           const finalDirectory = path.dirname(finalRelativePath) !== "." ? path.dirname(finalRelativePath) : null
 
-          console.log(`📍 POSIZIONAMENTO FINALE:`)
+          console.log(`📍 POSIZIONAMENTO FINALE CORRETTO:`)
           console.log(`   📄 File: "${path.basename(finalTargetPath)}"`)
-          console.log(`   📂 Cartella: "${finalDirectory || "ROOT"}"`)
-          console.log(`   📍 Percorso completo: "${finalRelativePath}"`)
-          console.log(`   🎯 Percorso assoluto: "${finalTargetPath}"`)
+          console.log(`   📂 Cartella di destinazione: "${finalDirectory || "ROOT"}"`)
+          console.log(`   📍 Percorso relativo finale: "${finalRelativePath}"`)
+          console.log(`   🎯 Percorso assoluto finale: "${finalTargetPath}"`)
 
-          // Sposta il file nella posizione finale perfetta
-          console.log(`🚀 Spostamento file in posizione perfetta...`)
+          // Verifica finale che la directory esista prima dello spostamento
+          if (!fs.existsSync(path.dirname(finalTargetPath))) {
+            console.log(`🚨 ERRORE CRITICO: Directory finale mancante: "${path.dirname(finalTargetPath)}"`)
+            try {
+              fs.mkdirSync(path.dirname(finalTargetPath), { recursive: true })
+              console.log(`🔧 Directory finale creata: "${path.dirname(finalTargetPath)}"`)
+            } catch (finalDirError) {
+              console.error(`❌ Errore creazione directory finale:`, finalDirError)
+              processedCount++
+              uploadResults.push({
+                filename: file.name,
+                status: "error",
+                error: `Impossibile creare directory finale: ${finalDirError.message}`,
+                originalPath: targetRelativePath,
+              })
+              resolve()
+              return
+            }
+          }
+
+          // Sposta il file nella posizione finale CORRETTA
+          console.log(`🚀 Spostamento file nella cartella corretta...`)
+          console.log(`   Da: ${file.tempFilePath || "temp"}`)
+          console.log(`   A: ${finalTargetPath}`)
+
           file.mv(finalTargetPath, (moveError) => {
             processedCount++
 
@@ -1163,6 +1225,25 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("Client disconnected")
   })
+})
+
+app.post("/api/create-folder", requireLogin, (req, res) => {
+  const folderRelPath = req.body?.path
+  if (!folderRelPath || folderRelPath.includes("..")) {
+    return res.status(400).json({ success: false, message: "Percorso non valido" })
+  }
+
+  const baseFolder = path.join(__dirname, "public/uploads")
+  const fullPath = path.join(baseFolder, folderRelPath)
+
+  try {
+    fs.mkdirSync(fullPath, { recursive: true })
+    console.log("📁 Cartella creata:", fullPath)
+    res.json({ success: true })
+  } catch (err) {
+    console.error("Errore creazione cartella:", err)
+    res.status(500).json({ success: false, message: "Errore interno" })
+  }
 })
 
 const PORT = process.env.PORT || 3000

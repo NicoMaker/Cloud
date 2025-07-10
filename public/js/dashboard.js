@@ -144,14 +144,19 @@ function handleFolderSelection(e) {
   const folderStructure = new Map()
   const rootFiles = []
 
-  console.log("\n📋 ANALISI STRUTTURA CARTELLA:")
+  console.log("\n📋 ANALISI DETTAGLIATA STRUTTURA CARTELLA:")
   files.forEach((file, index) => {
     const path = file.webkitRelativePath || file.name
-    console.log(`${index + 1}. ${path} (${formatFileSize(file.size)})`)
+    console.log(`${index + 1}. "${path}" (${formatFileSize(file.size)})`)
+    console.log(`   webkitRelativePath: "${file.webkitRelativePath || 'NON DISPONIBILE'}"`)
+    console.log(`   name: "${file.name}"`)
 
     if (path.includes("/")) {
       const dirPath = path.substring(0, path.lastIndexOf("/"))
       const fileName = path.substring(path.lastIndexOf("/") + 1)
+
+      console.log(`   📂 Directory: "${dirPath}"`)
+      console.log(`   📄 Nome file: "${fileName}"`)
 
       if (!folderStructure.has(dirPath)) {
         folderStructure.set(dirPath, [])
@@ -168,6 +173,7 @@ function handleFolderSelection(e) {
         }
       })
     } else {
+      console.log(`   📄 File nella ROOT: "${path}"`)
       rootFiles.push(path)
     }
   })
@@ -187,10 +193,18 @@ function handleFolderSelection(e) {
       const parentIndent = "  ".repeat(depth)
 
       console.log(`${parentIndent}📁 ${folderName}/`)
-      folderStructure.get(folder).forEach((file) => {
-        console.log(`${indent}📄 ${file}`)
-      })
+      const filesInFolder = folderStructure.get(folder)
+      if (filesInFolder && filesInFolder.length > 0) {
+        filesInFolder.forEach((file) => {
+          console.log(`${indent}📄 ${file}`)
+        })
+      }
     })
+
+  console.log(`\n📊 RIEPILOGO:`)
+  console.log(`   📁 Cartelle totali: ${folderStructure.size}`)
+  console.log(`   📄 File nella root: ${rootFiles.length}`)
+  console.log(`   📄 File totali: ${files.length}`)
 
   selectedFiles = files
   displaySelectedFiles()
@@ -940,4 +954,36 @@ function showToast(message, type = "info") {
   toastEl.addEventListener("hidden.bs.toast", () => {
     toastEl.remove()
   })
+}
+
+function createNewFolder() {
+  const input = document.getElementById("newFolderName")
+  const folderName = input.value.trim()
+
+  if (!folderName || folderName.includes("..")) {
+    alert("Inserisci un nome valido per la cartella.")
+    return
+  }
+
+  const fullPath = currentPath ? `${currentPath}/${folderName}` : folderName
+
+  fetch("/api/create-folder", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path: fullPath })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        input.value = ""
+        loadFiles(currentPath)
+        showToast("Cartella creata con successo!", "success")
+      } else {
+        alert("Errore: " + (data.message || "Impossibile creare la cartella."))
+      }
+    })
+    .catch(err => {
+      console.error("Errore nella creazione:", err)
+      alert("Errore durante la creazione della cartella.")
+    })
 }
