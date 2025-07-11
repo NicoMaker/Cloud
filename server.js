@@ -8,6 +8,8 @@ const http = require("http")
 const socketIo = require("socket.io")
 const crypto = require("crypto")
 
+const archiver = require("archiver")
+
 const app = express()
 const server = http.createServer(app)
 const io = socketIo(server)
@@ -1245,6 +1247,20 @@ app.post("/api/create-folder", requireLogin, (req, res) => {
     res.status(500).json({ success: false, message: "Errore interno" })
   }
 })
+
+app.get("/download-folder", requireLogin, (req, res) => {
+  const folderPath = path.join(__dirname, "public/uploads", req.query.folder || "")
+  const zipName = path.basename(folderPath) + ".zip"
+
+  res.setHeader("Content-Disposition", `attachment; filename=${zipName}`)
+  res.setHeader("Content-Type", "application/zip")
+
+  const archive = archiver("zip", { zlib: { level: 9 } })
+  archive.pipe(res)
+  archive.directory(folderPath, false)
+  archive.finalize()
+})
+
 
 const PORT = process.env.PORT || 3000
 server.listen(PORT, () => {
