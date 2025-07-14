@@ -987,3 +987,79 @@ function createNewFolder() {
       alert("Errore durante la creazione della cartella.")
     })
 }
+
+function handleFolderSelection(e) {
+  const files = Array.from(e.target.files);
+  selectedFiles = files;
+  displaySelectedFiles();
+  document.getElementById("fileInput").value = "";
+}
+
+
+function displaySelectedFiles() {
+  const container = document.getElementById("selectedFiles");
+  const filesList = document.getElementById("filesList");
+
+  if (!selectedFiles.length) {
+    container.style.display = "none";
+    return;
+  }
+
+  const folderStructure = new Map();
+  const rootFiles = [];
+
+  selectedFiles.forEach(file => {
+    const path = file.webkitRelativePath || file.name;
+    if (path.includes("/")) {
+      const dirPath = path.substring(0, path.lastIndexOf("/"));
+      if (!folderStructure.has(dirPath)) folderStructure.set(dirPath, []);
+      folderStructure.get(dirPath).push(file.name);
+    } else {
+      rootFiles.push(file.name);
+    }
+  });
+
+  filesList.innerHTML = `
+    <ul class="list-group">
+      ${rootFiles.map(f => `<li class="list-group-item">📄 ${f}</li>`).join("")}
+      ${Array.from(folderStructure.entries()).map(([dir, files]) =>
+        `<li class="list-group-item">
+          📁 ${dir}
+          <ul>${files.map(f => `<li>📄 ${f}</li>`).join("")}</ul>
+        </li>`).join("")}
+    </ul>
+  `;
+  container.style.display = "block";
+}
+
+async function startUpload() {
+  if (!selectedFiles.length) {
+    alert("Seleziona file o cartelle prima di caricare");
+    return;
+  }
+
+  const formData = new FormData();
+  selectedFiles.forEach(file => {
+    const name = file.webkitRelativePath || file.name;
+    const fileWithPath = new File([file], name, { type: file.type, lastModified: file.lastModified });
+    Object.defineProperty(fileWithPath, "webkitRelativePath", {
+      value: file.webkitRelativePath,
+      enumerable: true
+    });
+    formData.append("files", fileWithPath);
+  });
+
+  const res = await fetch("/upload", {
+    method: "POST",
+    body: formData,
+    credentials: "same-origin"
+  });
+
+  const result = await res.json();
+  if (result.success) {
+    alert("File caricati con successo!");
+    loadFiles(""); // ricarica esploratore
+  } else {
+    alert("Errore nel caricamento: " + result.message);
+  }
+}

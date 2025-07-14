@@ -1261,6 +1261,67 @@ app.get("/download-folder", requireLogin, (req, res) => {
   archive.finalize()
 })
 
+app.post("/upload", requireLogin, (req, res) => {
+  const baseFolder = path.join(__dirname, "public/uploads");
+  const fileArray = Array.isArray(req.files.files) ? req.files.files : [req.files.files];
+
+  const structureInfo = createPerfectFileSystemStructure(fileArray, baseFolder);
+  if (!structureInfo.success) {
+    return res.status(500).json({ success: false, message: "Errore struttura" });
+  }
+
+  fileArray.forEach(file => {
+    const relPath = file.webkitRelativePath || file.name;
+    const targetPath = path.join(baseFolder, relPath.replace(/^\/+/, ""));
+    file.mv(targetPath);
+  });
+
+  res.json({
+    success: true,
+    totalFiles: fileArray.length,
+    foldersCreated: structureInfo.createdDirectories.length,
+    structureDetails: {
+      maxDepth: structureInfo.maxDepth,
+      rootFiles: structureInfo.rootFiles,
+      totalDirectories: structureInfo.totalDirectories,
+      fileDistribution: Object.fromEntries(
+        [...structureInfo.filesByDirectory.entries()].map(([dir, files]) => [
+          dir || "ROOT",
+          files.map(f => ({ filename: f.fileName })),
+        ])
+      )
+    },
+    fileSystemStructure: {
+      directories: structureInfo.createdDirectories
+    }
+  });
+});
+
+app.get("/api/files", requireLogin, (req, res) => {
+  const baseFolder = path.join(__dirname, "public/uploads");
+  const requestedFolder = path.join(baseFolder, req.query.folder || "");
+
+  if (!fs.existsSync(requestedFolder)) {
+    return res.json([]);
+  }
+
+  const items = fs.readdirSync(requestedFolder, { withFileTypes: true }).map(item => {
+    const fullPath = path.join(requestedFolder, item.name);
+    const stats = fs.statSync(fullPath);
+    return {
+      name: item.name,
+      path: path.relative(baseFolder, fullPath).replace(/\\/g, "/"),
+      type: item.isDirectory() ? "folder" : "file",
+      size: item.isDirectory() ? null : stats.size,
+      modified: stats.mtime,
+      created: stats.birthtime,
+    };
+  });
+
+  items.sort((a, b) => (a.type === "folder" ? -1 : 1) || a.name.localeCompare(b.name));
+  res.json(items);
+});
+
 
 const PORT = process.env.PORT || 3000
 server.listen(PORT, () => {
