@@ -11,12 +11,11 @@
 </head>
 
 <body>
-  <!-- Navigazione -->
+  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-gradient">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">
-        <i class="fas fa-shield-alt me-2"></i>
-        Gestore File Sicuro
+        <i class="fas fa-shield-alt me-2"></i>Gestore File Sicuro
       </a>
       <div class="navbar-nav ms-auto">
         <span class="navbar-text me-3" id="userInfo">
@@ -38,42 +37,40 @@
 
   <div class="container-fluid mt-4">
     <div class="row">
-      <!-- Pannello Caricamento -->
+      <!-- Upload Panel -->
       <div class="col-lg-4 mb-4">
         <div class="card upload-card">
           <div class="card-header">
-            <h5 class="mb-0">
-              <i class="fas fa-upload me-2"></i>Caricamento File
-            </h5>
+            <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Caricamento File</h5>
           </div>
           <div class="card-body">
-            <!-- Form Caricamento -->
-            <form id="uploadForm" enctype="multipart/form-data" class="upload-form">
+            <form id="uploadForm" enctype="multipart/form-data">
+              <!-- Carica File -->
               <div class="upload-section mb-4">
                 <h6><i class="fas fa-file me-2"></i>Carica File</h6>
                 <div class="input-group mb-3">
-                  <input type="file" class="form-control" id="fileInput" name="files" multiple>
+                  <input type="file" class="form-control" id="fileInput" name="files" multiple style="display: none;">
                   <button class="btn btn-outline-primary" type="button" onclick="selectFiles()">
                     <i class="fas fa-file me-1"></i>Sfoglia File
                   </button>
                 </div>
               </div>
 
+              <!-- Carica Cartella -->
               <div class="upload-section mb-4">
                 <h6><i class="fas fa-folder me-2"></i>Carica Cartella</h6>
                 <div class="input-group mb-3">
                   <input type="file" id="folderInput" name="files" webkitdirectory multiple style="display: none;">
-
                   <button class="btn btn-outline-secondary" type="button" onclick="selectFolder()">
                     <i class="fas fa-folder me-1"></i>Sfoglia Cartella
                   </button>
                 </div>
               </div>
 
-              <!-- File Selezionati -->
+              <!-- File selezionati -->
               <div id="selectedFiles" class="selected-files mb-3" style="display: none;">
                 <h6><i class="fas fa-list me-2"></i>File Selezionati</h6>
-                <div id="filesList" class="files-list"></div>
+                <div id="filesList"></div>
                 <div class="upload-actions mt-3">
                   <button type="button" class="btn btn-success" onclick="startUpload()">
                     <i class="fas fa-upload me-1"></i>Carica File
@@ -89,7 +86,7 @@
                 <h6><i class="fas fa-spinner fa-spin me-2"></i>Caricamento in corso...</h6>
                 <div class="progress mb-2">
                   <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                    role="progressbar" style="width: 0%"></div>
+                    style="width: 0%"></div>
                 </div>
                 <div id="progressText" class="text-center">0%</div>
               </div>
@@ -98,14 +95,12 @@
         </div>
       </div>
 
-      <!-- Browser File -->
+      <!-- File Browser -->
       <div class="col-lg-8">
         <div class="card browser-card">
           <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-              <h5 class="mb-1">
-                <i class="fas fa-folder-open me-2"></i>Esplora File
-              </h5>
+              <h5 class="mb-1"><i class="fas fa-folder-open me-2"></i>Esplora File</h5>
               <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0" id="breadcrumb">
                   <li class="breadcrumb-item">
@@ -116,33 +111,29 @@
                 </ol>
               </nav>
             </div>
-            <div>
-              <button class="btn btn-outline-primary btn-sm" onclick="refreshFiles()">
-                <i class="fas fa-sync-alt me-1"></i>Aggiorna
-              </button>
-            </div>
+            <button class="btn btn-outline-primary btn-sm" onclick="refreshFiles()">
+              <i class="fas fa-sync-alt me-1"></i>Aggiorna
+            </button>
           </div>
           <div class="card-body p-0">
-            <div id="fileListContainer" class="file-browser-container">
-              <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                  <thead class="table-light sticky-top">
-                    <tr>
-                      <th><i class="fas fa-file me-1"></i>Nome</th>
-                      <th><i class="fas fa-weight me-1"></i>Dimensione</th>
-                      <th><i class="fas fa-calendar me-1"></i>Modificato</th>
-                      <th><i class="fas fa-cogs me-1"></i>Azioni</th>
-                    </tr>
-                  </thead>
-                  <tbody id="fileList">
-                    <tr>
-                      <td colspan="4" class="text-center py-4">
-                        <i class="fas fa-spinner fa-spin me-2"></i>Caricamento...
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th><i class="fas fa-file me-1"></i>Nome</th>
+                    <th><i class="fas fa-weight me-1"></i>Dimensione</th>
+                    <th><i class="fas fa-calendar me-1"></i>Modificato</th>
+                    <th><i class="fas fa-cogs me-1"></i>Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="fileList">
+                  <tr>
+                    <td colspan="4" class="text-center py-4">
+                      <i class="fas fa-spinner fa-spin me-2"></i>Caricamento...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -150,38 +141,30 @@
     </div>
   </div>
 
-  <!-- Modal Conferma Eliminazione Totale -->
+  <!-- Modal Eliminazione Totale -->
   <div class="modal fade" id="deleteAllModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header bg-danger text-white">
-          <h5 class="modal-title">
-            <i class="fas fa-exclamation-triangle me-2"></i>Conferma Eliminazione Totale
-          </h5>
+          <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Conferma Eliminazione Totale</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div class="alert alert-danger">
-            <i class="fas fa-warning me-2"></i>
-            <strong>ATTENZIONE!</strong> Questa azione eliminerà:
+            <i class="fas fa-warning me-2"></i><strong>ATTENZIONE!</strong> Questa azione eliminerà tutto:
           </div>
           <ul class="list-unstyled">
-            <li><i class="fas fa-times text-danger me-2"></i>Tutti i file caricati</li>
+            <li><i class="fas fa-times text-danger me-2"></i>Tutti i file</li>
             <li><i class="fas fa-times text-danger me-2"></i>Tutte le cartelle</li>
-            <li><i class="fas fa-times text-danger me-2"></i>Tutti i record dal database</li>
+            <li><i class="fas fa-times text-danger me-2"></i>Tutti i dati associati</li>
           </ul>
           <p class="text-danger"><strong>Questa azione NON può essere annullata!</strong></p>
-
-          <div class="mb-3">
-            <label for="confirmText" class="form-label">
-              Digita <strong>"ELIMINA TUTTO"</strong> per confermare:
-            </label>
-            <input type="text" class="form-control" id="confirmText" placeholder="ELIMINA TUTTO">
-          </div>
+          <label for="confirmText" class="form-label">Digita <strong>"ELIMINA TUTTO"</strong> per confermare:</label>
+          <input type="text" class="form-control" id="confirmText" placeholder="ELIMINA TUTTO">
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-          <button type="button" class="btn btn-danger" id="confirmDeleteAll" disabled onclick="confirmDeleteAll()">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button class="btn btn-danger" id="confirmDeleteAll" disabled onclick="confirmDeleteAll()">
             <i class="fas fa-trash-alt me-1"></i>Elimina Tutto
           </button>
         </div>
@@ -189,10 +172,10 @@
     </div>
   </div>
 
-  <!-- Contenitore Toast -->
+  <!-- Toast Notifiche -->
   <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
 
-  <!-- Scripts -->
+  <!-- Script -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="js/dashboard.js"></script>

@@ -258,6 +258,18 @@ function displaySelectedFiles() {
     }
   })
 
+  selectedFiles.forEach((file, index) => {
+    const relativePath = file.webkitRelativePath || file.name;
+
+    // Crea nuovo file con lo stesso nome e path relativo
+    const newFile = new File([file], relativePath, {
+      type: file.type,
+      lastModified: file.lastModified,
+    });
+
+    formData.append("files", newFile, relativePath);
+  });
+
   // Mostra struttura delle cartelle con preview dettagliata
   if (folderStructure.size > 0) {
     const structureDiv = document.createElement("div")
@@ -1023,7 +1035,7 @@ function displaySelectedFiles() {
     <ul class="list-group">
       ${rootFiles.map(f => `<li class="list-group-item">📄 ${f}</li>`).join("")}
       ${Array.from(folderStructure.entries()).map(([dir, files]) =>
-        `<li class="list-group-item">
+    `<li class="list-group-item">
           📁 ${dir}
           <ul>${files.map(f => `<li>📄 ${f}</li>`).join("")}</ul>
         </li>`).join("")}
@@ -1061,5 +1073,83 @@ async function startUpload() {
     loadFiles(""); // ricarica esploratore
   } else {
     alert("Errore nel caricamento: " + result.message);
+  }
+}
+
+async function startUpload() {
+  if (!selectedFiles.length) {
+    showToast("Seleziona file o cartelle prima di caricare", "warning");
+    return;
+  }
+
+  if (isUploading) {
+    showToast("Caricamento già in corso", "warning");
+    return;
+  }
+
+  isUploading = true;
+  const formData = new FormData();
+
+  // ✅ Trova la cartella principale (top-level)
+  const firstPath = selectedFiles[0].webkitRelativePath || selectedFiles[0].name;
+  const topLevelFolder = firstPath.split("/")[0]; // esempio: "ProgettoA"
+
+  selectedFiles.forEach((file, index) => {
+    let relPath = file.webkitRelativePath || file.name;
+
+    // ➕ Aggiunge cartella principale se non presente
+    if (!relPath.startsWith(topLevelFolder)) {
+      relPath = topLevelFolder + "/" + relPath;
+    }
+
+    const fileToUpload = new File([file], relPath, {
+      type: file.type,
+      lastModified: file.lastModified,
+    });
+
+    // Forza webkitRelativePath sul nuovo path completo
+    Object.defineProperty(fileToUpload, "webkitRelativePath", {
+      value: relPath,
+      writable: false,
+      enumerable: true,
+    });
+
+    formData.append("files", fileToUpload);
+  });
+
+  // Mostra barra progresso
+  document.getElementById("uploadProgress").style.display = "block";
+  document.getElementById("selectedFiles").style.display = "none";
+
+  try {
+    const response = await fetch("/upload", {
+      method: "POST",
+      body: formData,
+      credentials: "same-origin",
+    });
+
+    const data = await response.json();
+    isUploading = false;
+
+    if (response.status === 401) {
+      showToast("Sessione scaduta. Reindirizzamento al login...", "error");
+      setTimeout(() => (window.location.href = "/login.html?error=session_expired"), 2000);
+      return;
+    }
+
+    if (!response.ok || !data.success) {
+      showToast("Errore durante il caricamento: " + data.message, "danger");
+      return;
+    }
+
+    // ✅ Successo
+    showToast(`✅ ${data.totalFiles} file caricati con successo!`, "success");
+    clearSelection();
+    loadFiles(""); // ricarica browser file
+
+  } catch (error) {
+    console.error("Errore upload:", error);
+    showToast("Errore durante il caricamento dei file", "danger");
+    isUploading = false;
   }
 }
