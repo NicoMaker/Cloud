@@ -507,387 +507,113 @@ function createPerfectFileSystemStructure(files, baseFolder) {
 
 // Enhanced upload with perfect folder structure creation
 app.post("/upload", requireLogin, (req, res) => {
-  console.log("=== RICHIESTA UPLOAD RICEVUTA ===")
-  console.log("👤 Utente autenticato:", req.session.user.username, `(${req.session.user.role})`)
-
-  // Imposta header JSON
-  res.setHeader("Content-Type", "application/json")
+  console.log("=== RICHIESTA UPLOAD RICEVUTA ===");
+  res.setHeader("Content-Type", "application/json");
 
   try {
     if (!req.files || Object.keys(req.files).length === 0) {
-      console.log("❌ Nessun file trovato nella richiesta")
       return res.status(400).json({
         success: false,
         error: "Nessun file caricato",
         message: "Nessun file è stato ricevuto dal server",
-      })
+      });
     }
 
     // Estrai i file dalla richiesta
-    let files = null
-    if (req.files.files) {
-      files = req.files.files
-    } else {
-      const fileKeys = Object.keys(req.files)
+    let files = req.files.files;
+    if (!files) {
+      const fileKeys = Object.keys(req.files);
       if (fileKeys.length > 0) {
-        files = req.files[fileKeys[0]]
-        console.log(`📁 Usando campo file: ${fileKeys[0]}`)
+        files = req.files[fileKeys[0]];
       }
     }
-
     if (!files) {
-      console.log("❌ Nessun file trovato in nessun campo")
       return res.status(400).json({
         success: false,
         error: "Nessun file trovato",
         message: "Nessun file è stato trovato nella richiesta",
-      })
+      });
     }
 
-    const baseFolder = path.join(__dirname, "public/uploads")
+    const destination = req.body && req.body.destination ? req.body.destination.replace(/^\/+|\/+$/g, "") : "";
+    const baseFolder = path.join(__dirname, "public/uploads");
     if (!fs.existsSync(baseFolder)) {
-      console.log("🏗️  Creando directory uploads base")
-      fs.mkdirSync(baseFolder, { recursive: true })
+      fs.mkdirSync(baseFolder, { recursive: true });
     }
 
-    const fileArray = Array.isArray(files) ? files : [files]
-    console.log(`📄 Processando ${fileArray.length} file`)
+    const fileArray = Array.isArray(files) ? files : [files];
+    const uploadResults = [];
 
-    if (fileArray.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "Array file vuoto",
-        message: "Nessun file da processare",
-      })
-    }
-
-    // FASE 1: Analizza e crea struttura file system perfetta
-    console.log("=== FASE 1: ANALISI E CREAZIONE STRUTTURA PERFETTA ===")
-    const structureInfo = createPerfectFileSystemStructure(fileArray, baseFolder)
-
-    if (!structureInfo.success) {
-      console.log("❌ Errore nella creazione della struttura")
-      return res.status(500).json({
-        success: false,
-        error: "Errore creazione struttura",
-        message: `Impossibile creare ${structureInfo.failedDirectories.length} directory`,
-        failedDirectories: structureInfo.failedDirectories,
-      })
-    }
-
-    const uploadResults = []
-    let processedCount = 0
-
-    // Funzione per processare ogni file con precisione
-    const processFileWithPerfectPlacement = (file, index) => {
+    Promise.all(fileArray.map((file, index) => {
       return new Promise((resolve) => {
-        console.log(`\n--- PROCESSAMENTO PERFETTO FILE ${index + 1}/${fileArray.length} ---`)
-        console.log(`📄 Nome file originale: "${file.name}"`)
-        console.log(`📁 webkitRelativePath: "${file.webkitRelativePath || "non disponibile"}"`)
-        console.log(`📄 originalFilename: "${file.originalFilename || "non disponibile"}"`)
-
-        let targetRelativePath = file.name
-
-        // PRIORITÀ ASSOLUTA al webkitRelativePath per struttura perfetta
-        if (file.webkitRelativePath && file.webkitRelativePath.trim() !== "") {
-          targetRelativePath = file.webkitRelativePath
-          console.log(
-            `✅ CARTELLA RILEVATA - Usando webkitRelativePath per posizionamento perfetto: "${targetRelativePath}"`,
-          )
-        } else if (
-          file.originalFilename &&
-          file.originalFilename !== file.name &&
-          file.originalFilename.includes("/")
-        ) {
-          targetRelativePath = file.originalFilename
-          console.log(`✅ PERCORSO ALTERNATIVO - Usando originalFilename: "${targetRelativePath}"`)
-        } else {
-          console.log(`⚠️  NESSUN PERCORSO CARTELLA - File andrà nella root: "${targetRelativePath}"`)
+        let targetRelativePath = file.name;
+        if (destination) {
+          targetRelativePath = path.join(destination, targetRelativePath).replace(/\\/g, "/");
         }
-        try {
-          console.log(`\n--- PROCESSAMENTO PERFETTO FILE ${index + 1}/${fileArray.length} ---`)
-          console.log(`📄 Nome file originale: "${file.name}"`)
-          console.log(`📁 webkitRelativePath: "${file.webkitRelativePath || "non disponibile"}"`)
-
-          let targetRelativePath = file.name
-
-          // PRIORITÀ ASSOLUTA al webkitRelativePath per struttura perfetta
-          if (file.webkitRelativePath && file.webkitRelativePath.trim() !== "") {
-            targetRelativePath = file.webkitRelativePath
-            console.log(`✅ Usando webkitRelativePath per posizionamento perfetto: "${targetRelativePath}"`)
-          } else {
-            console.log(`⚠️  webkitRelativePath non disponibile, file andrà nella root: "${targetRelativePath}"`)
-          }
-
-          // Normalizza il percorso mantenendo la struttura ESATTA
-          targetRelativePath = targetRelativePath.replace(/\\/g, "/").replace(/^\/+/, "")
-          const targetFullPath = path.join(baseFolder, targetRelativePath)
-
-          console.log(`📍 Percorso di destinazione calcolato: "${targetFullPath}"`)
-          console.log(`📁 Percorso relativo: "${targetRelativePath}"`)
-
-          // Security check rigoroso
-          const normalizedTargetPath = path.normalize(targetFullPath)
-          const normalizedBaseFolder = path.normalize(baseFolder)
-
-          if (!normalizedTargetPath.startsWith(normalizedBaseFolder)) {
-            console.error(`❌ VIOLAZIONE SICUREZZA: "${normalizedTargetPath}"`)
-            processedCount++
+        targetRelativePath = targetRelativePath.replace(/^\/+/, "");
+        const targetFullPath = path.join(baseFolder, targetRelativePath);
+        const targetDirectory = path.dirname(targetFullPath);
+        console.log(`File #${index + 1}: ${file.name} -> ${targetRelativePath}`);
+        // Crea la directory se non esiste
+        if (!fs.existsSync(targetDirectory)) {
+          fs.mkdirSync(targetDirectory, { recursive: true });
+        }
+        // Gestione conflitti nomi file
+        let finalTargetPath = targetFullPath;
+        let conflictCounter = 1;
+        const fileExtension = path.extname(targetFullPath);
+        const fileBaseName = path.basename(targetFullPath, fileExtension);
+        while (fs.existsSync(finalTargetPath)) {
+          finalTargetPath = path.join(targetDirectory, `${fileBaseName}_${conflictCounter}${fileExtension}`);
+          conflictCounter++;
+        }
+        // Sposta il file
+        file.mv(finalTargetPath, (moveError) => {
+          if (moveError) {
             uploadResults.push({
               filename: file.name,
               status: "error",
-              error: "Percorso file non sicuro",
+              error: moveError.message,
               originalPath: targetRelativePath,
-            })
-            resolve()
-            return
-          }
-
-          // Verifica e crea directory di destinazione se necessaria
-          const targetDirectory = path.dirname(targetFullPath)
-          console.log(`🔍 Directory di destinazione: "${targetDirectory}"`)
-
-          // Verifica se la directory esiste, se no la crea
-          if (!fs.existsSync(targetDirectory)) {
-            console.log(`🏗️ Creando directory mancante: "${targetDirectory}"`)
-            try {
-              fs.mkdirSync(targetDirectory, { recursive: true })
-              console.log(`✅ Directory creata: "${targetDirectory}"`)
-            } catch (dirError) {
-              console.error(`❌ Errore creazione directory:`, dirError)
-              processedCount++
-              uploadResults.push({
-                filename: file.name,
-                status: "error",
-                error: `Impossibile creare directory: ${dirError.message}`,
-                originalPath: targetRelativePath,
-              })
-              resolve()
-              return
-            }
+            });
           } else {
-            console.log(`✅ Directory già esistente: "${targetDirectory}"`)
+            uploadResults.push({
+              filename: file.name,
+              status: "success",
+              savedAs: path.relative(baseFolder, finalTargetPath).replace(/\\/g, "/"),
+            });
           }
-
-          // Gestione conflitti nomi file intelligente
-          let finalTargetPath = targetFullPath
-          let conflictCounter = 1
-          const fileExtension = path.extname(targetFullPath)
-          const fileBaseName = path.basename(targetFullPath, fileExtension)
-          const fileDirectory = path.dirname(targetFullPath)
-
-          while (fs.existsSync(finalTargetPath)) {
-            const newFileName = `${fileBaseName}_${conflictCounter}${fileExtension}`
-            finalTargetPath = path.join(fileDirectory, newFileName)
-            conflictCounter++
-            console.log(`🔄 Conflitto nome file, nuovo nome: "${newFileName}"`)
-          }
-
-          // Informazioni complete sul posizionamento FINALE
-          const finalRelativePath = path.relative(baseFolder, finalTargetPath).replace(/\\/g, "/")
-          const finalDirectory = path.dirname(finalRelativePath) !== "." ? path.dirname(finalRelativePath) : null
-
-          console.log(`📍 POSIZIONAMENTO FINALE CORRETTO:`)
-          console.log(`   📄 File: "${path.basename(finalTargetPath)}"`)
-          console.log(`   📂 Cartella di destinazione: "${finalDirectory || "ROOT"}"`)
-          console.log(`   📍 Percorso relativo finale: "${finalRelativePath}"`)
-          console.log(`   🎯 Percorso assoluto finale: "${finalTargetPath}"`)
-
-          // Verifica finale che la directory esista prima dello spostamento
-          if (!fs.existsSync(path.dirname(finalTargetPath))) {
-            console.log(`🚨 ERRORE CRITICO: Directory finale mancante: "${path.dirname(finalTargetPath)}"`)
-            try {
-              fs.mkdirSync(path.dirname(finalTargetPath), { recursive: true })
-              console.log(`🔧 Directory finale creata: "${path.dirname(finalTargetPath)}"`)
-            } catch (finalDirError) {
-              console.error(`❌ Errore creazione directory finale:`, finalDirError)
-              processedCount++
-              uploadResults.push({
-                filename: file.name,
-                status: "error",
-                error: `Impossibile creare directory finale: ${finalDirError.message}`,
-                originalPath: targetRelativePath,
-              })
-              resolve()
-              return
-            }
-          }
-
-          // Sposta il file nella posizione finale CORRETTA
-          console.log(`🚀 Spostamento file nella cartella corretta...`)
-          console.log(`   Da: ${file.tempFilePath || "temp"}`)
-          console.log(`   A: ${finalTargetPath}`)
-
-          file.mv(finalTargetPath, (moveError) => {
-            processedCount++
-
-            if (moveError) {
-              console.error(`❌ Errore spostamento "${file.name}":`, moveError)
-              uploadResults.push({
-                filename: file.name,
-                status: "error",
-                error: moveError.message,
-                originalPath: targetRelativePath,
-                targetPath: finalRelativePath,
-              })
-            } else {
-              console.log(`✅ File posizionato perfettamente: "${finalTargetPath}"`)
-
-              // Registra nel database con informazioni complete
-              db.run(
-                "INSERT INTO file_uploads (filename, filepath, filesize, user_id) VALUES (?, ?, ?, ?)",
-                [path.basename(finalTargetPath), finalRelativePath, file.size, req.session.user.id],
-                (dbError) => {
-                  if (dbError) {
-                    console.error("❌ Errore registrazione database:", dbError)
-                  } else {
-                    console.log(`✅ Registrato nel database: "${finalRelativePath}"`)
-                  }
-                },
-              )
-
-              uploadResults.push({
-                filename: file.name,
-                status: "success",
-                path: finalRelativePath,
-                originalPath: targetRelativePath,
-                folder: finalDirectory,
-                structureLevel: finalDirectory ? finalDirectory.split("/").length : 0,
-                isInRoot: !finalDirectory,
-                directoryPath: finalDirectory || "ROOT",
-                finalFileName: path.basename(finalTargetPath),
-                wasRenamed: conflictCounter > 1,
-              })
-            }
-
-            // Aggiorna progresso con informazioni dettagliate
-            const percentage = Math.round((processedCount / fileArray.length) * 100)
-            io.emit("uploadProgress", {
-              processed: processedCount,
-              total: fileArray.length,
-              percentage: percentage,
-              currentFile: file.name,
-              currentFolder: finalDirectory || "ROOT",
-              currentPath: finalRelativePath,
-            })
-
-            resolve()
-          })
-        } catch (processingError) {
-          console.error(`❌ Errore processamento "${file.name}":`, processingError)
-          processedCount++
-          uploadResults.push({
-            filename: file.name,
-            status: "error",
-            error: processingError.message,
-            originalPath: file.name,
-          })
-          resolve()
-        }
-      })
-    }
-
-    // FASE 2: Processa tutti i file con posizionamento perfetto
-    console.log("\n=== FASE 2: PROCESSAMENTO FILE CON POSIZIONAMENTO PERFETTO ===")
-    Promise.all(fileArray.map((file, index) => processFileWithPerfectPlacement(file, index))).then(() => {
-      console.log("\n=== UPLOAD COMPLETATO CON STRUTTURA PERFETTA ===")
-
-      const successCount = uploadResults.filter((r) => r.status === "success").length
-      const errorCount = uploadResults.filter((r) => r.status === "error").length
-
-      // Analizza distribuzione file per cartella
-      const fileDistribution = new Map()
-      const foldersWithFiles = new Set()
-
-      uploadResults
-        .filter((r) => r.status === "success")
-        .forEach((result) => {
-          const folder = result.folder || "ROOT"
-          foldersWithFiles.add(folder)
-
-          if (!fileDistribution.has(folder)) {
-            fileDistribution.set(folder, [])
-          }
-          fileDistribution.get(folder).push({
-            filename: result.finalFileName,
-            originalName: result.filename,
-            wasRenamed: result.wasRenamed,
-          })
-        })
-
-      // Messaggio di successo dettagliato
-      let successMessage = `${successCount} file caricati con successo! `
-      successMessage += `Struttura file system ricreata perfettamente: ${structureInfo.totalDirectories} cartelle `
-      successMessage += `(profondità ${structureInfo.maxDepth} livelli)`
-
-      if (structureInfo.rootFiles > 0) {
-        successMessage += `, ${structureInfo.rootFiles} file nella root`
-      }
-
-      const response = {
-        success: successCount > 0,
+          resolve();
+        });
+      });
+    })).then(() => {
+      const successful = uploadResults.filter(r => r.status === "success").length;
+      const failed = uploadResults.filter(r => r.status === "error").length;
+      return res.json({
+        success: failed === 0,
+        totalFiles: successful,
         results: uploadResults,
-        message: successMessage,
-        total: fileArray.length,
-        successful: successCount,
-        errors: errorCount,
-        foldersCreated: structureInfo.totalDirectories,
-        folderStructure: structureInfo.allDirectories,
-        structureDetails: {
-          totalDirectories: structureInfo.totalDirectories,
-          totalFiles: structureInfo.totalFiles,
-          maxDepth: structureInfo.maxDepth,
-          rootFiles: structureInfo.rootFiles,
-          foldersWithFiles: foldersWithFiles.size,
-          directoryList: structureInfo.allDirectories,
-          fileDistribution: Object.fromEntries(fileDistribution),
-          createdDirectories: structureInfo.createdDirectories,
-          failedDirectories: structureInfo.failedDirectories,
-        },
-        fileSystemStructure: {
-          directories: structureInfo.allDirectories,
-          filesByDirectory: Object.fromEntries(structureInfo.filesByDirectory),
-          treeStructure: generatePerfectTreeStructure(structureInfo.allDirectories, fileDistribution),
-          hierarchyMap: Object.fromEntries(structureInfo.directoryHierarchy),
-        },
-        uploadQuality: {
-          structureIntegrity: structureInfo.success,
-          directorySuccessRate: (structureInfo.createdDirectories.length / structureInfo.totalDirectories) * 100,
-          fileSuccessRate: (successCount / fileArray.length) * 100,
-          perfectPlacement: errorCount === 0 && structureInfo.success,
-        },
-      }
-
-      console.log("✅ RIEPILOGO UPLOAD PERFETTO:")
-      console.log(
-        `   📁 Directory create: ${structureInfo.createdDirectories.length}/${structureInfo.totalDirectories}`,
-      )
-      console.log(`   📄 File processati: ${successCount}/${fileArray.length}`)
-      console.log(`   📊 Profondità massima: ${structureInfo.maxDepth}`)
-      console.log(`   🏠 File nella root: ${structureInfo.rootFiles}`)
-      console.log(`   🎯 Posizionamento perfetto: ${response.uploadQuality.perfectPlacement ? "SÌ" : "NO"}`)
-
-      console.log(`\n📂 DISTRIBUZIONE FILE PER CARTELLA:`)
-      fileDistribution.forEach((files, folder) => {
-        console.log(`   📁 ${folder}: ${files.length} file`)
-        files.forEach((fileInfo) => {
-          const renameInfo = fileInfo.wasRenamed ? ` (rinominato da ${fileInfo.originalName})` : ""
-          console.log(`      📄 ${fileInfo.filename}${renameInfo}`)
-        })
-      })
-
-      res.json(response)
-    })
+        message: failed === 0 ? "Caricamento completato" : `Caricamento completato con ${failed} errori`
+      });
+    }).catch(error => {
+      return res.status(500).json({
+        success: false,
+        totalFiles: 0,
+        results: uploadResults,
+        message: "Errore durante il caricamento dei file",
+        error: error.message || error
+      });
+    });
   } catch (error) {
-    console.error("❌ Errore critico durante l'upload:", error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      error: "Errore server critico",
-      message: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-    })
+      totalFiles: 0,
+      results: [],
+      message: "Errore server critico",
+      error: error.message || error
+    });
   }
-})
+});
 
 // Funzione helper per generare struttura ad albero perfetta
 function generatePerfectTreeStructure(directories, fileDistribution) {
@@ -1260,67 +986,6 @@ app.get("/download-folder", requireLogin, (req, res) => {
   archive.directory(folderPath, false)
   archive.finalize()
 })
-
-app.post("/upload", requireLogin, (req, res) => {
-  const baseFolder = path.join(__dirname, "public/uploads");
-  const fileArray = Array.isArray(req.files.files) ? req.files.files : [req.files.files];
-
-  const structureInfo = createPerfectFileSystemStructure(fileArray, baseFolder);
-  if (!structureInfo.success) {
-    return res.status(500).json({ success: false, message: "Errore struttura" });
-  }
-
-  fileArray.forEach(file => {
-    const relPath = file.webkitRelativePath || file.name;
-    const targetPath = path.join(baseFolder, relPath.replace(/^\/+/, ""));
-    file.mv(targetPath);
-  });
-
-  res.json({
-    success: true,
-    totalFiles: fileArray.length,
-    foldersCreated: structureInfo.createdDirectories.length,
-    structureDetails: {
-      maxDepth: structureInfo.maxDepth,
-      rootFiles: structureInfo.rootFiles,
-      totalDirectories: structureInfo.totalDirectories,
-      fileDistribution: Object.fromEntries(
-        [...structureInfo.filesByDirectory.entries()].map(([dir, files]) => [
-          dir || "ROOT",
-          files.map(f => ({ filename: f.fileName })),
-        ])
-      )
-    },
-    fileSystemStructure: {
-      directories: structureInfo.createdDirectories
-    }
-  });
-});
-
-app.get("/api/files", requireLogin, (req, res) => {
-  const baseFolder = path.join(__dirname, "public/uploads");
-  const requestedFolder = path.join(baseFolder, req.query.folder || "");
-
-  if (!fs.existsSync(requestedFolder)) {
-    return res.json([]);
-  }
-
-  const items = fs.readdirSync(requestedFolder, { withFileTypes: true }).map(item => {
-    const fullPath = path.join(requestedFolder, item.name);
-    const stats = fs.statSync(fullPath);
-    return {
-      name: item.name,
-      path: path.relative(baseFolder, fullPath).replace(/\\/g, "/"),
-      type: item.isDirectory() ? "folder" : "file",
-      size: item.isDirectory() ? null : stats.size,
-      modified: stats.mtime,
-      created: stats.birthtime,
-    };
-  });
-
-  items.sort((a, b) => (a.type === "folder" ? -1 : 1) || a.name.localeCompare(b.name));
-  res.json(items);
-});
 
 
 const PORT = process.env.PORT || 3000

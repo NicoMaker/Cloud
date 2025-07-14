@@ -6,6 +6,7 @@ let userRole = "user"
 let isUploading = false
 const io = window.io
 const bootstrap = window.bootstrap
+let mainFolderNames = [];
 
 // Inizializza l'applicazione
 document.addEventListener("DOMContentLoaded", () => {
@@ -136,442 +137,106 @@ function handleFileSelection(e) {
 }
 
 function handleFolderSelection(e) {
-  const files = Array.from(e.target.files)
-  console.log("=== SELEZIONE CARTELLA COMPLETA ===")
-  console.log(`📁 File nella cartella: ${files.length}`)
-
-  // Analizza la struttura della cartella selezionata
-  const folderStructure = new Map()
-  const rootFiles = []
-
-  console.log("\n📋 ANALISI DETTAGLIATA STRUTTURA CARTELLA:")
-  files.forEach((file, index) => {
-    const path = file.webkitRelativePath || file.name
-    console.log(`${index + 1}. "${path}" (${formatFileSize(file.size)})`)
-    console.log(`   webkitRelativePath: "${file.webkitRelativePath || 'NON DISPONIBILE'}"`)
-    console.log(`   name: "${file.name}"`)
-
-    if (path.includes("/")) {
-      const dirPath = path.substring(0, path.lastIndexOf("/"))
-      const fileName = path.substring(path.lastIndexOf("/") + 1)
-
-      console.log(`   📂 Directory: "${dirPath}"`)
-      console.log(`   📄 Nome file: "${fileName}"`)
-
-      if (!folderStructure.has(dirPath)) {
-        folderStructure.set(dirPath, [])
-      }
-      folderStructure.get(dirPath).push(fileName)
-
-      // Aggiungi anche tutte le cartelle padre
-      const parts = dirPath.split("/")
-      let currentPath = ""
-      parts.forEach((part) => {
-        currentPath += (currentPath ? "/" : "") + part
-        if (!folderStructure.has(currentPath)) {
-          folderStructure.set(currentPath, [])
+  const files = Array.from(e.target.files);
+  mainFolderNames = [];
+  if (files.length > 0) {
+    // Ricava tutti i nomi delle cartelle principali selezionate
+    files.forEach(file => {
+      const relPath = file.webkitRelativePath;
+      if (relPath && relPath.includes("/")) {
+        const folder = relPath.split("/")[0];
+        if (!mainFolderNames.includes(folder)) {
+          mainFolderNames.push(folder);
         }
-      })
-    } else {
-      console.log(`   📄 File nella ROOT: "${path}"`)
-      rootFiles.push(path)
-    }
-  })
-
-  console.log("\n🌳 STRUTTURA CARTELLE CHE VERRANNO RICREATE:")
-  console.log("📁 ROOT")
-  rootFiles.forEach((file) => {
-    console.log(`   📄 ${file}`)
-  })
-
-  Array.from(folderStructure.keys())
-    .sort()
-    .forEach((folder) => {
-      const depth = folder.split("/").length
-      const indent = "  ".repeat(depth + 1)
-      const folderName = folder.split("/").pop()
-      const parentIndent = "  ".repeat(depth)
-
-      console.log(`${parentIndent}📁 ${folderName}/`)
-      const filesInFolder = folderStructure.get(folder)
-      if (filesInFolder && filesInFolder.length > 0) {
-        filesInFolder.forEach((file) => {
-          console.log(`${indent}📄 ${file}`)
-        })
       }
-    })
-
-  console.log(`\n📊 RIEPILOGO:`)
-  console.log(`   📁 Cartelle totali: ${folderStructure.size}`)
-  console.log(`   📄 File nella root: ${rootFiles.length}`)
-  console.log(`   📄 File totali: ${files.length}`)
-
-  selectedFiles = files
-  displaySelectedFiles()
-
-  // Pulisci l'altro input
-  document.getElementById("fileInput").value = ""
+    });
+  }
+  selectedFiles = files;
+  displaySelectedFiles();
+  document.getElementById("fileInput").value = "";
 }
+
 
 function displaySelectedFiles() {
-  const container = document.getElementById("selectedFiles")
-  const filesList = document.getElementById("filesList")
+  const container = document.getElementById("selectedFiles");
+  const filesList = document.getElementById("filesList");
 
-  if (selectedFiles.length === 0) {
-    container.style.display = "none"
-    return
+  if (!selectedFiles.length) {
+    container.style.display = "none";
+    return;
   }
 
-  container.style.display = "block"
-  filesList.innerHTML = ""
+  const folderStructure = new Map();
+  const rootFiles = [];
 
-  // Analizza la struttura delle cartelle per la visualizzazione
-  const folderStructure = new Map()
-  const rootFiles = []
-
-  selectedFiles.forEach((file, index) => {
-    const path = file.webkitRelativePath || file.name
-
+  selectedFiles.forEach(file => {
+    const path = file.webkitRelativePath || file.name;
     if (path.includes("/")) {
-      // File in una cartella
-      const dirPath = path.substring(0, path.lastIndexOf("/"))
-      const fileName = path.substring(path.lastIndexOf("/") + 1)
-
-      if (!folderStructure.has(dirPath)) {
-        folderStructure.set(dirPath, [])
-      }
-
-      folderStructure.get(dirPath).push({
-        file: file,
-        name: fileName,
-        fullPath: path,
-        index: index,
-      })
+      const dirPath = path.substring(0, path.lastIndexOf("/"));
+      if (!folderStructure.has(dirPath)) folderStructure.set(dirPath, []);
+      folderStructure.get(dirPath).push(file.name);
     } else {
-      // File nella radice
-      rootFiles.push({
-        file: file,
-        name: path,
-        fullPath: path,
-        index: index,
-      })
+      rootFiles.push(file.name);
     }
-  })
-
-  selectedFiles.forEach((file, index) => {
-    const relativePath = file.webkitRelativePath || file.name;
-
-    // Crea nuovo file con lo stesso nome e path relativo
-    const newFile = new File([file], relativePath, {
-      type: file.type,
-      lastModified: file.lastModified,
-    });
-
-    formData.append("files", newFile, relativePath);
   });
 
-  // Mostra struttura delle cartelle con preview dettagliata
-  if (folderStructure.size > 0) {
-    const structureDiv = document.createElement("div")
-    structureDiv.className = "folder-structure mb-3"
-    structureDiv.innerHTML = `
-      <h6 class="text-primary">
-        <i class="fas fa-sitemap me-2"></i>Struttura File System da Ricreare
-      </h6>
-      <div class="alert alert-info">
-        <i class="fas fa-info-circle me-2"></i>
-        <strong>Sistema Avanzato:</strong> La struttura originale verrà ricreata esattamente come nel file system, 
-        mantenendo tutte le cartelle, sottocartelle e file nelle posizioni corrette.
-      </div>
-    `
-
-    // Ordina le cartelle per percorso per mostrare la gerarchia
-    const sortedFolders = Array.from(folderStructure.keys()).sort()
-
-    sortedFolders.forEach((folderPath) => {
-      const files = folderStructure.get(folderPath)
-      const folderDiv = document.createElement("div")
-      folderDiv.className = "folder-preview mb-3 border rounded"
-
-      // Calcola il livello di indentazione per la visualizzazione gerarchica
-      const level = folderPath.split("/").length - 1
-      const indentClass = level > 0 ? `ms-${Math.min(level * 2, 5)}` : ""
-
-      folderDiv.innerHTML = `
-        <div class="folder-header bg-light p-3 rounded-top ${indentClass}">
-          <div class="d-flex align-items-center">
-            <i class="fas fa-folder text-warning me-2"></i>
-            <strong class="text-primary">${folderPath}</strong>
-            <span class="badge bg-secondary ms-2">${files.length} file</span>
-          </div>
-          <small class="text-muted">Profondità: ${folderPath.split("/").length} livelli</small>
-        </div>
-        <div class="folder-files p-2 bg-white rounded-bottom">
-          ${files
-          .slice(0, 5) // Mostra solo i primi 5 file per non appesantire l'interfaccia
-          .map(
-            (f) => `
-            <div class="file-preview d-flex align-items-center py-1">
-              <i class="fas fa-file text-muted me-2"></i>
-              <span class="flex-grow-1">${f.name}</span>
-              <small class="text-muted">${formatFileSize(f.file.size)}</small>
-            </div>
-          `,
-          )
-          .join("")}
-          ${files.length > 5 ? `<div class="text-muted small mt-1">... e altri ${files.length - 5} file</div>` : ""}
-        </div>
-      `
-
-      structureDiv.appendChild(folderDiv)
-    })
-
-    filesList.appendChild(structureDiv)
-  }
-
-  // Mostra file nella radice se presenti
-  if (rootFiles.length > 0) {
-    const rootDiv = document.createElement("div")
-    rootDiv.className = "root-files mb-3 border rounded"
-    rootDiv.innerHTML = `
-      <div class="folder-header bg-light p-3 rounded-top">
-        <div class="d-flex align-items-center">
-          <i class="fas fa-home text-primary me-2"></i>
-          <strong class="text-primary">File Radice</strong>
-          <span class="badge bg-secondary ms-2">${rootFiles.length} file</span>
-        </div>
-        <small class="text-muted">File che verranno posizionati nella directory principale</small>
-      </div>
-      <div class="folder-files p-2 bg-white rounded-bottom">
-        ${rootFiles
-        .slice(0, 10)
-        .map(
-          (f) => `
-          <div class="file-preview d-flex align-items-center py-1">
-            <i class="fas fa-file text-muted me-2"></i>
-            <span class="flex-grow-1">${f.name}</span>
-            <small class="text-muted">${formatFileSize(f.file.size)}</small>
-          </div>
-        `,
-        )
-        .join("")}
-        ${rootFiles.length > 10 ? `<div class="text-muted small mt-1">... e altri ${rootFiles.length - 10} file</div>` : ""}
-      </div>
-    `
-    filesList.appendChild(rootDiv)
-  }
-
-  // Mostra riepilogo dettagliato
-  const totalSize = selectedFiles.reduce((total, file) => total + file.size, 0)
-  const summary = document.createElement("div")
-  summary.className = "upload-summary mt-3 p-4 bg-gradient text-white rounded"
-  summary.innerHTML = `
-    <div class="row">
-      <div class="col-md-4">
-        <div class="text-center">
-          <h5 class="mb-1"><i class="fas fa-files me-2"></i>${selectedFiles.length}</h5>
-          <small>File Totali</small>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-center">
-          <h5 class="mb-1"><i class="fas fa-folder me-2"></i>${folderStructure.size}</h5>
-          <small>Cartelle da Creare</small>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="text-center">
-          <h5 class="mb-1"><i class="fas fa-weight me-2"></i>${formatFileSize(totalSize)}</h5>
-          <small>Dimensione Totale</small>
-        </div>
-      </div>
-    </div>
-    <hr class="my-3">
-    <div class="text-center">
-      <small>
-        <i class="fas fa-magic me-1"></i>
-        <strong>Sistema Intelligente:</strong> Struttura file system ricreata automaticamente con precisione assoluta
-      </small>
-    </div>
-  `
-  filesList.appendChild(summary)
+  filesList.innerHTML = `
+    <ul class="list-group">
+      ${rootFiles.map(f => `<li class="list-group-item">📄 ${f}</li>`).join("")}
+      ${Array.from(folderStructure.entries()).map(([dir, files]) =>
+    `<li class="list-group-item">
+          📁 ${dir}
+          <ul>${files.map(f => `<li>📄 ${f}</li>`).join("")}</ul>
+        </li>`).join("")}
+    </ul>
+  `;
+  container.style.display = "block";
 }
 
-function clearSelection() {
-  selectedFiles = []
-  document.getElementById("fileInput").value = ""
-  document.getElementById("folderInput").value = ""
-  document.getElementById("selectedFiles").style.display = "none"
-  console.log("🧹 Selezione file cancellata")
-}
-
-// Processo di Caricamento Avanzato
 async function startUpload() {
-  if (selectedFiles.length === 0) {
-    showToast("Seleziona file da caricare", "warning")
-    return
+  if (!selectedFiles.length) {
+    showToast("Seleziona file o cartelle prima di caricare", "warning");
+    return;
   }
-
   if (isUploading) {
-    showToast("Caricamento già in corso", "warning")
-    return
+    showToast("Caricamento già in corso", "warning");
+    return;
   }
+  isUploading = true;
+  const formData = new FormData();
 
-  // Controlla sessione prima dell'upload
-  console.log("🔍 Controllo sessione prima dell'upload...")
-  const sessionValid = await checkSession()
-  if (!sessionValid) {
-    return
-  }
+  // Trova tutte le cartelle principali selezionate
+  const topLevelFolders = mainFolderNames.length > 0 ? mainFolderNames : [selectedFiles[0].webkitRelativePath ? selectedFiles[0].webkitRelativePath.split("/")[0] : ""];
 
-  console.log("=== INIZIO CARICAMENTO AVANZATO ===")
-  console.log(`📄 File da caricare: ${selectedFiles.length}`)
+  selectedFiles.forEach((file) => {
+    formData.append("files", file, file.webkitRelativePath || file.name);
+  });
 
-  // Analizza pre-upload per logging
-  const preUploadAnalysis = analyzeFileStructure(selectedFiles)
-  console.log("📊 ANALISI PRE-UPLOAD:")
-  console.log(`   📁 Cartelle da creare: ${preUploadAnalysis.foldersToCreate}`)
-  console.log(`   📄 File nella root: ${preUploadAnalysis.rootFiles}`)
-  console.log(`   📊 Profondità massima: ${preUploadAnalysis.maxDepth}`)
-
-  isUploading = true
-  const formData = new FormData()
-
-  // Aggiungi tutti i file al FormData mantenendo la struttura perfetta
-  selectedFiles.forEach((file, index) => {
-    const fileName = file.webkitRelativePath || file.name
-    console.log(`📤 Preparazione file ${index + 1}: "${fileName}"`)
-
-    // Crea un nuovo file mantenendo tutte le proprietà originali
-    const fileToUpload = new File([file], fileName, {
-      type: file.type,
-      lastModified: file.lastModified,
-    })
-
-    // Mantieni webkitRelativePath se presente
-    if (file.webkitRelativePath) {
-      Object.defineProperty(fileToUpload, "webkitRelativePath", {
-        value: file.webkitRelativePath,
-        writable: false,
-        enumerable: true,
-        configurable: false,
-      })
-      console.log(`   🗂️ Struttura mantenuta: "${file.webkitRelativePath}"`)
-    }
-
-    formData.append("files", fileToUpload)
-  })
-
-  // Mostra progresso
-  document.getElementById("uploadProgress").style.display = "block"
-  document.getElementById("selectedFiles").style.display = "none"
-
-  console.log("📤 Invio richiesta caricamento con struttura file system...")
+  // Mostra barra progresso
+  document.getElementById("uploadProgress").style.display = "block";
+  document.getElementById("selectedFiles").style.display = "none";
 
   try {
     const response = await fetch("/upload", {
       method: "POST",
       body: formData,
-      headers: {
-        Accept: "application/json",
-      },
       credentials: "same-origin",
-    })
-
-    console.log("📥 Stato risposta:", response.status)
-    console.log("📥 Content-Type:", response.headers.get("content-type"))
-
-    if (response.status === 401) {
-      showToast("Sessione scaduta. Reindirizzamento al login...", "error")
-      setTimeout(() => {
-        window.location.href = "/login.html?error=session_expired"
-      }, 2000)
-      return
+    });
+    const data = await response.json();
+    isUploading = false;
+    document.getElementById("uploadProgress").style.display = "none";
+    if (!response.ok || !data.success) {
+      showToast("Errore durante il caricamento: " + (data.message || data.error || "Errore sconosciuto"), "danger");
+      return;
     }
-
-    if (!response.ok) {
-      throw new Error(`Errore HTTP! stato: ${response.status}`)
-    }
-
-    const data = await response.json()
-    console.log("✅ RISPOSTA CARICAMENTO COMPLETA:", data)
-
-    if (data.success) {
-      let message = `${data.successful} file caricati con successo!`
-
-      if (data.foldersCreated > 0) {
-        message += ` Struttura file system ricreata perfettamente: ${data.foldersCreated} cartelle`
-
-        if (data.structureDetails) {
-          const details = data.structureDetails
-          message += ` (profondità ${details.maxDepth} livelli)`
-
-          if (details.rootFiles > 0) {
-            message += `, ${details.rootFiles} file nella root`
-          }
-        }
-      }
-
-      showToast(message, "success")
-      clearSelection()
-
-      // Mostra dettagli struttura nel console per debug
-      if (data.fileSystemStructure && data.fileSystemStructure.directories) {
-        console.log("🌳 STRUTTURA FILE SYSTEM RICREATA PERFETTAMENTE:")
-        console.log("📁 ROOT")
-
-        // File nella root
-        if (data.structureDetails.fileDistribution.ROOT) {
-          data.structureDetails.fileDistribution.ROOT.forEach((fileInfo) => {
-            console.log(`   📄 ${fileInfo.filename}`)
-          })
-        }
-
-        // Struttura directory
-        data.fileSystemStructure.directories.forEach((dir) => {
-          const level = dir.split("/").length
-          const indent = "  ".repeat(level + 1)
-          const dirName = dir.split("/").pop()
-          const parentIndent = "  ".repeat(level)
-
-          console.log(`${parentIndent}📁 ${dirName}/`)
-
-          const filesInDir = data.structureDetails.fileDistribution[dir] || []
-          filesInDir.forEach((fileInfo) => {
-            console.log(`${indent}📄 ${fileInfo.filename}`)
-          })
-        })
-
-        console.log(`\n📊 STATISTICHE FINALI:`)
-        console.log(`   📁 Directory create: ${data.structureDetails.totalDirectories}`)
-        console.log(`   📄 File processati: ${data.structureDetails.totalFiles}`)
-        console.log(`   📊 Profondità: ${data.structureDetails.maxDepth}`)
-        console.log(`   🎯 Posizionamento perfetto: ${data.uploadQuality?.perfectPlacement ? "SÌ" : "NO"}`)
-      }
-
-      // Aggiorna immediatamente la lista file
-      loadFilesAndScrollToNew(currentPath)
-    } else {
-      showToast("Caricamento fallito: " + (data.error || data.message || "Errore sconosciuto"), "error")
-      console.error("❌ Caricamento fallito:", data)
-    }
-  } catch (err) {
-    console.error("❌ Errore caricamento:", err)
-
-    if (err.message.includes("401")) {
-      showToast("Sessione scaduta. Effettua nuovamente il login.", "error")
-      setTimeout(() => {
-        window.location.href = "/login.html?error=session_expired"
-      }, 2000)
-    } else {
-      showToast("Caricamento fallito: " + err.message, "error")
-    }
-  } finally {
-    isUploading = false
-    document.getElementById("uploadProgress").style.display = "none"
-    if (selectedFiles.length > 0) {
-      document.getElementById("selectedFiles").style.display = "block"
-    }
+    showToast(`✅ ${data.totalFiles || 0} file caricati con successo!`, "success");
+    clearSelection();
+    loadFiles("");
+  } catch (error) {
+    console.error("Errore upload:", error);
+    showToast("Errore durante il caricamento dei file", "danger");
+    isUploading = false;
+    document.getElementById("uploadProgress").style.display = "none";
   }
 }
 
@@ -998,158 +663,4 @@ function createNewFolder() {
       console.error("Errore nella creazione:", err)
       alert("Errore durante la creazione della cartella.")
     })
-}
-
-function handleFolderSelection(e) {
-  const files = Array.from(e.target.files);
-  selectedFiles = files;
-  displaySelectedFiles();
-  document.getElementById("fileInput").value = "";
-}
-
-
-function displaySelectedFiles() {
-  const container = document.getElementById("selectedFiles");
-  const filesList = document.getElementById("filesList");
-
-  if (!selectedFiles.length) {
-    container.style.display = "none";
-    return;
-  }
-
-  const folderStructure = new Map();
-  const rootFiles = [];
-
-  selectedFiles.forEach(file => {
-    const path = file.webkitRelativePath || file.name;
-    if (path.includes("/")) {
-      const dirPath = path.substring(0, path.lastIndexOf("/"));
-      if (!folderStructure.has(dirPath)) folderStructure.set(dirPath, []);
-      folderStructure.get(dirPath).push(file.name);
-    } else {
-      rootFiles.push(file.name);
-    }
-  });
-
-  filesList.innerHTML = `
-    <ul class="list-group">
-      ${rootFiles.map(f => `<li class="list-group-item">📄 ${f}</li>`).join("")}
-      ${Array.from(folderStructure.entries()).map(([dir, files]) =>
-    `<li class="list-group-item">
-          📁 ${dir}
-          <ul>${files.map(f => `<li>📄 ${f}</li>`).join("")}</ul>
-        </li>`).join("")}
-    </ul>
-  `;
-  container.style.display = "block";
-}
-
-async function startUpload() {
-  if (!selectedFiles.length) {
-    alert("Seleziona file o cartelle prima di caricare");
-    return;
-  }
-
-  const formData = new FormData();
-  selectedFiles.forEach(file => {
-    const name = file.webkitRelativePath || file.name;
-    const fileWithPath = new File([file], name, { type: file.type, lastModified: file.lastModified });
-    Object.defineProperty(fileWithPath, "webkitRelativePath", {
-      value: file.webkitRelativePath,
-      enumerable: true
-    });
-    formData.append("files", fileWithPath);
-  });
-
-  const res = await fetch("/upload", {
-    method: "POST",
-    body: formData,
-    credentials: "same-origin"
-  });
-
-  const result = await res.json();
-  if (result.success) {
-    alert("File caricati con successo!");
-    loadFiles(""); // ricarica esploratore
-  } else {
-    alert("Errore nel caricamento: " + result.message);
-  }
-}
-
-async function startUpload() {
-  if (!selectedFiles.length) {
-    showToast("Seleziona file o cartelle prima di caricare", "warning");
-    return;
-  }
-
-  if (isUploading) {
-    showToast("Caricamento già in corso", "warning");
-    return;
-  }
-
-  isUploading = true;
-  const formData = new FormData();
-
-  // ✅ Trova la cartella principale (top-level)
-  const firstPath = selectedFiles[0].webkitRelativePath || selectedFiles[0].name;
-  const topLevelFolder = firstPath.split("/")[0]; // esempio: "ProgettoA"
-
-  selectedFiles.forEach((file, index) => {
-    let relPath = file.webkitRelativePath || file.name;
-
-    // ➕ Aggiunge cartella principale se non presente
-    if (!relPath.startsWith(topLevelFolder)) {
-      relPath = topLevelFolder + "/" + relPath;
-    }
-
-    const fileToUpload = new File([file], relPath, {
-      type: file.type,
-      lastModified: file.lastModified,
-    });
-
-    // Forza webkitRelativePath sul nuovo path completo
-    Object.defineProperty(fileToUpload, "webkitRelativePath", {
-      value: relPath,
-      writable: false,
-      enumerable: true,
-    });
-
-    formData.append("files", fileToUpload);
-  });
-
-  // Mostra barra progresso
-  document.getElementById("uploadProgress").style.display = "block";
-  document.getElementById("selectedFiles").style.display = "none";
-
-  try {
-    const response = await fetch("/upload", {
-      method: "POST",
-      body: formData,
-      credentials: "same-origin",
-    });
-
-    const data = await response.json();
-    isUploading = false;
-
-    if (response.status === 401) {
-      showToast("Sessione scaduta. Reindirizzamento al login...", "error");
-      setTimeout(() => (window.location.href = "/login.html?error=session_expired"), 2000);
-      return;
-    }
-
-    if (!response.ok || !data.success) {
-      showToast("Errore durante il caricamento: " + data.message, "danger");
-      return;
-    }
-
-    // ✅ Successo
-    showToast(`✅ ${data.totalFiles} file caricati con successo!`, "success");
-    clearSelection();
-    loadFiles(""); // ricarica browser file
-
-  } catch (error) {
-    console.error("Errore upload:", error);
-    showToast("Errore durante il caricamento dei file", "danger");
-    isUploading = false;
-  }
 }
