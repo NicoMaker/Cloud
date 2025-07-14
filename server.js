@@ -546,6 +546,7 @@ app.post("/upload", requireLogin, (req, res) => {
 
     Promise.all(fileArray.map((file, index) => {
       return new Promise((resolve) => {
+        // Usa SEMPRE file.name come path relativo (es: CartellaA/file.txt)
         let targetRelativePath = file.name;
         if (destination) {
           targetRelativePath = path.join(destination, targetRelativePath).replace(/\\/g, "/");
@@ -553,22 +554,10 @@ app.post("/upload", requireLogin, (req, res) => {
         targetRelativePath = targetRelativePath.replace(/^\/+/, "");
         const targetFullPath = path.join(baseFolder, targetRelativePath);
         const targetDirectory = path.dirname(targetFullPath);
-        console.log(`File #${index + 1}: ${file.name} -> ${targetRelativePath}`);
-        // Crea la directory se non esiste
         if (!fs.existsSync(targetDirectory)) {
           fs.mkdirSync(targetDirectory, { recursive: true });
         }
-        // Gestione conflitti nomi file
-        let finalTargetPath = targetFullPath;
-        let conflictCounter = 1;
-        const fileExtension = path.extname(targetFullPath);
-        const fileBaseName = path.basename(targetFullPath, fileExtension);
-        while (fs.existsSync(finalTargetPath)) {
-          finalTargetPath = path.join(targetDirectory, `${fileBaseName}_${conflictCounter}${fileExtension}`);
-          conflictCounter++;
-        }
-        // Sposta il file
-        file.mv(finalTargetPath, (moveError) => {
+        file.mv(targetFullPath, (moveError) => {
           if (moveError) {
             uploadResults.push({
               filename: file.name,
@@ -580,7 +569,7 @@ app.post("/upload", requireLogin, (req, res) => {
             uploadResults.push({
               filename: file.name,
               status: "success",
-              savedAs: path.relative(baseFolder, finalTargetPath).replace(/\\/g, "/"),
+              savedAs: path.relative(baseFolder, targetFullPath).replace(/\\/g, "/"),
             });
           }
           resolve();
@@ -986,6 +975,31 @@ app.get("/download-folder", requireLogin, (req, res) => {
   archive.directory(folderPath, false)
   archive.finalize()
 })
+
+// API ricorsiva per struttura ad albero
+app.get("/api/tree", requireLogin, (req, res) => {
+  const baseFolder = path.join(__dirname, "public/uploads");
+  const startFolder = req.query.folder ? path.join(baseFolder, req.query.folder) : baseFolder;
+
+  function readTree(dir) {
+    const items = fs.readdirSync(dir, { withFileTypes: true });
+    const result = { folders: {}, files: [] };
+    items.forEach(item => {
+      if (item.isDirectory()) {
+        result.folders[item.name] = readTree(path.join(dir, item.name));
+      } else {
+        result.files.push(item.name);
+      }
+    });
+    return result;
+  }
+
+  if (!fs.existsSync(startFolder)) {
+    return res.json({ folders: {}, files: [] });
+  }
+  const tree = readTree(startFolder);
+  res.json(tree);
+});
 
 
 const PORT = process.env.PORT || 3000

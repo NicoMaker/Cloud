@@ -160,37 +160,61 @@ function handleFolderSelection(e) {
 function displaySelectedFiles() {
   const container = document.getElementById("selectedFiles");
   const filesList = document.getElementById("filesList");
+  const previewTree = document.getElementById("uploadPreviewTree");
 
   if (!selectedFiles.length) {
     container.style.display = "none";
+    if (previewTree) previewTree.innerHTML = "";
     return;
   }
 
-  const folderStructure = new Map();
-  const rootFiles = [];
-
+  // Costruisci una mappa struttura: { cartella: { sottocartella: { ... }, files: [] } }
+  const tree = {};
   selectedFiles.forEach(file => {
-    const path = file.webkitRelativePath || file.name;
-    if (path.includes("/")) {
-      const dirPath = path.substring(0, path.lastIndexOf("/"));
-      if (!folderStructure.has(dirPath)) folderStructure.set(dirPath, []);
-      folderStructure.get(dirPath).push(file.name);
-    } else {
-      rootFiles.push(file.name);
+    const relPath = file.webkitRelativePath || file.name;
+    const parts = relPath.split("/");
+    let node = tree;
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (i === parts.length - 1) {
+        // È un file
+        if (!node.files) node.files = [];
+        node.files.push(part);
+      } else {
+        if (!node[part]) node[part] = {};
+        node = node[part];
+      }
     }
   });
 
+  // Funzione ricorsiva per generare HTML ad albero
+  function renderTree(node, level = 0) {
+    let html = '<ul style="margin-left:' + (level * 20) + 'px">';
+    for (const key in node) {
+      if (key === "files") {
+        node.files.forEach(f => {
+          html += `<li><i class='fas fa-file'></i> ${f}</li>`;
+        });
+      } else {
+        html += `<li><i class='fas fa-folder'></i> <b>${key}</b>`;
+        html += renderTree(node[key], level + 1);
+        html += '</li>';
+      }
+    }
+    html += '</ul>';
+    return html;
+  }
+
   filesList.innerHTML = `
-    <ul class="list-group">
-      ${rootFiles.map(f => `<li class="list-group-item">📄 ${f}</li>`).join("")}
-      ${Array.from(folderStructure.entries()).map(([dir, files]) =>
-    `<li class="list-group-item">
-          📁 ${dir}
-          <ul>${files.map(f => `<li>📄 ${f}</li>`).join("")}</ul>
-        </li>`).join("")}
-    </ul>
+    <div class="mb-2"><b>Anteprima struttura che verrà caricata:</b></div>
+    ${renderTree(tree)}
   `;
   container.style.display = "block";
+
+  // Mostra anche l'anteprima accanto (sidebar dedicata)
+  if (previewTree) {
+    previewTree.innerHTML = `<div class='mb-2'><b>Anteprima Upload</b></div>${renderTree(tree)}`;
+  }
 }
 
 async function startUpload() {
@@ -211,6 +235,7 @@ async function startUpload() {
   selectedFiles.forEach((file) => {
     formData.append("files", file, file.webkitRelativePath || file.name);
   });
+  formData.append("destination", currentPath || "");
 
   // Mostra barra progresso
   document.getElementById("uploadProgress").style.display = "block";
@@ -231,7 +256,9 @@ async function startUpload() {
     }
     showToast(`✅ ${data.totalFiles || 0} file caricati con successo!`, "success");
     clearSelection();
-    loadFiles("");
+    loadFiles(currentPath); // aggiorna la vista della cartella corrente
+    fetchAndShowSidebarTree(currentPath);
+    showMainTree(currentPath);
   } catch (error) {
     console.error("Errore upload:", error);
     showToast("Errore durante il caricamento dei file", "danger");
@@ -351,6 +378,54 @@ function loadFilesAndScrollToNew(folderPath) {
 }
 
 function displayFiles(files, folderPath) {
+  const filesContainer = document.getElementById("filesContainer");
+  const sidebar = document.getElementById("sidebarTree"); // Assicurati che esista un elemento con questo id
+
+  // Costruisci una struttura ad albero dai file ricevuti
+  const tree = {};
+  files.forEach(item => {
+    const parts = item.path.split("/");
+    let node = tree;
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (i === parts.length - 1) {
+        // È un file o una cartella
+        if (item.type === "folder") {
+          if (!node[part]) node[part] = {};
+        } else {
+          if (!node.files) node.files = [];
+          node.files.push(part);
+        }
+      } else {
+        if (!node[part]) node[part] = {};
+        node = node[part];
+      }
+    }
+  });
+
+  // Funzione ricorsiva per generare HTML ad albero
+  function renderTree(node, level = 0) {
+    let html = '<ul style="margin-left:' + (level * 16) + 'px">';
+    for (const key in node) {
+      if (key === "files") {
+        node.files.forEach(f => {
+          html += `<li><i class='fas fa-file'></i> ${f}</li>`;
+        });
+      } else {
+        html += `<li><i class='fas fa-folder'></i> <b>${key}</b>`;
+        html += renderTree(node[key], level + 1);
+        html += '</li>';
+      }
+    }
+    html += '</ul>';
+    return html;
+  }
+
+  // Mostra la struttura ad albero nella sidebar
+  if (sidebar) {
+    sidebar.innerHTML = `<div class='mb-2'><b>Struttura Cloud</b></div>${renderTree(tree)}`;
+  }
+
   const fileList = document.getElementById("fileList")
   fileList.innerHTML = ""
 
@@ -664,3 +739,68 @@ function createNewFolder() {
       alert("Errore durante la creazione della cartella.")
     })
 }
+
+// Funzione per mostrare la struttura reale del cloud nella sidebar
+async function fetchAndShowSidebarTree(folder = "") {
+  const sidebar = document.getElementById("sidebarTree");
+  if (!sidebar) return;
+  try {
+    const res = await fetch(`/api/tree${folder ? `?folder=${encodeURIComponent(folder)}` : ""}`);
+    const tree = await res.json();
+    function renderTree(node, level = 0) {
+      let html = '<ul style="margin-left:' + (level * 16) + 'px">';
+      for (const folderName in node.folders) {
+        html += `<li><i class='fas fa-folder'></i> <b>${folderName}</b>`;
+        html += renderTree(node.folders[folderName], level + 1);
+        html += '</li>';
+      }
+      if (node.files) {
+        node.files.forEach(f => {
+          html += `<li><i class='fas fa-file'></i> ${f}</li>`;
+        });
+      }
+      html += '</ul>';
+      return html;
+    }
+    sidebar.innerHTML = `<div class='mb-2'><b>Struttura Cloud</b></div>${renderTree(tree)}`;
+  } catch (e) {
+    sidebar.innerHTML = '<div class="text-danger">Errore caricamento struttura cloud</div>';
+  }
+}
+
+// Funzione per mostrare la struttura reale del cloud nella parte centrale
+async function showMainTree(folder = "") {
+  const mainContainer = document.getElementById("mainTree");
+  if (!mainContainer) return;
+  try {
+    const res = await fetch(`/api/tree${folder ? `?folder=${encodeURIComponent(folder)}` : ""}`);
+    const tree = await res.json();
+    function renderTree(node, level = 0) {
+      let html = '<ul style="margin-left:' + (level * 16) + 'px">';
+      for (const folderName in node.folders) {
+        html += `<li><i class='fas fa-folder'></i> <b>${folderName}</b>`;
+        html += renderTree(node.folders[folderName], level + 1);
+        html += '</li>';
+      }
+      if (node.files) {
+        node.files.forEach(f => {
+          html += `<li><i class='fas fa-file'></i> ${f}</li>`;
+        });
+      }
+      html += '</ul>';
+      return html;
+    }
+    mainContainer.innerHTML = `<div class='mb-2'><b>Contenuto Cloud</b></div>${renderTree(tree)}`;
+  } catch (e) {
+    mainContainer.innerHTML = '<div class="text-danger">Errore caricamento struttura cloud</div>';
+  }
+}
+
+// Chiamala all'avvio e dopo ogni upload
+window.addEventListener("DOMContentLoaded", () => {
+  fetchAndShowSidebarTree();
+  showMainTree();
+});
+// Dopo ogni upload successo:
+// fetchAndShowSidebarTree(currentPath);
+// showMainTree(currentPath);
