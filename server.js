@@ -507,75 +507,57 @@ function createPerfectFileSystemStructure(files, baseFolder) {
 
 // Enhanced upload with perfect folder structure creation
 app.post("/upload", requireLogin, (req, res) => {
-  console.log("=== RICHIESTA UPLOAD RICEVUTA ===");
-  res.setHeader("Content-Type", "application/json");
-
+  // Tutto viene creato dentro public/uploads, rispettando il path relativo ricevuto
   try {
     if (!req.files || Object.keys(req.files).length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "Nessun file caricato",
-        message: "Nessun file è stato ricevuto dal server",
-      });
+      return res.status(400).json({ success: false, message: "Nessun file caricato" });
     }
-
-    // Estrai i file dalla richiesta
     let files = req.files.files;
     if (!files) {
       const fileKeys = Object.keys(req.files);
-      if (fileKeys.length > 0) {
-        files = req.files[fileKeys[0]];
-      }
+      if (fileKeys.length > 0) files = req.files[fileKeys[0]];
     }
     if (!files) {
-      return res.status(400).json({
-        success: false,
-        error: "Nessun file trovato",
-        message: "Nessun file è stato trovato nella richiesta",
-      });
+      return res.status(400).json({ success: false, message: "Nessun file trovato" });
     }
-
-    const destination = req.body && req.body.destination ? req.body.destination.replace(/^\/+|\/+$/g, "") : "";
+    // La root di tutto è SEMPRE public/uploads
     const baseFolder = path.join(__dirname, "public/uploads");
-    if (!fs.existsSync(baseFolder)) {
-      fs.mkdirSync(baseFolder, { recursive: true });
-    }
-
+    if (!fs.existsSync(baseFolder)) fs.mkdirSync(baseFolder, { recursive: true });
     const fileArray = Array.isArray(files) ? files : [files];
     const uploadResults = [];
-
-    Promise.all(fileArray.map((file, index) => {
+    Promise.all(fileArray.map((file) => {
       return new Promise((resolve) => {
-        // Usa SEMPRE file.name come path relativo (es: CartellaA/file.txt)
+        // Il path relativo ricevuto è già completo (anche per sottocartelle)
         let targetRelativePath = file.name;
-        if (destination) {
-          targetRelativePath = path.join(destination, targetRelativePath).replace(/\\/g, "/");
-        }
         targetRelativePath = targetRelativePath.replace(/^\/+/, "");
         const targetFullPath = path.join(baseFolder, targetRelativePath);
         const targetDirectory = path.dirname(targetFullPath);
-        if (!fs.existsSync(targetDirectory)) {
-          fs.mkdirSync(targetDirectory, { recursive: true });
-        }
+        // Crea tutte le cartelle mancanti dentro uploads
+        if (!fs.existsSync(targetDirectory)) fs.mkdirSync(targetDirectory, { recursive: true });
         file.mv(targetFullPath, (moveError) => {
-          if (moveError) {
-            uploadResults.push({
-              filename: file.name,
-              status: "error",
-              error: moveError.message,
-              originalPath: targetRelativePath,
-            });
-          } else {
-            uploadResults.push({
-              filename: file.name,
-              status: "success",
-              savedAs: path.relative(baseFolder, targetFullPath).replace(/\\/g, "/"),
-            });
-          }
+          uploadResults.push({
+            filename: file.name,
+            status: moveError ? "error" : "success",
+            error: moveError ? moveError.message : undefined,
+            savedAs: path.relative(baseFolder, targetFullPath).replace(/\\/g, "/"),
+          });
           resolve();
         });
       });
     })).then(() => {
+      // Dopo aver gestito i file, creo tutte le cartelle richieste (anche vuote)
+      if (req.body.folders) {
+        let folders = [];
+        try {
+          folders = JSON.parse(req.body.folders);
+        } catch (e) {}
+        folders.forEach(folderRel => {
+          const folderPath = path.join(baseFolder, folderRel);
+          if (!fs.existsSync(folderPath)) {
+            fs.mkdirSync(folderPath, { recursive: true });
+          }
+        });
+      }
       const successful = uploadResults.filter(r => r.status === "success").length;
       const failed = uploadResults.filter(r => r.status === "error").length;
       return res.json({

@@ -168,16 +168,28 @@ function displaySelectedFiles() {
     return;
   }
 
-  // Costruisci una mappa struttura: { cartella: { sottocartella: { ... }, files: [] } }
+  // Trova la cartella principale (root) dal primo file selezionato
+  let rootFolder = "";
+  if (selectedFiles[0].webkitRelativePath && selectedFiles[0].webkitRelativePath.includes("/")) {
+    rootFolder = selectedFiles[0].webkitRelativePath.split("/")[0];
+  } else if (selectedFiles[0].webkitRelativePath) {
+    rootFolder = selectedFiles[0].webkitRelativePath;
+  } else if (selectedFiles[0].name && selectedFiles.length === 1) {
+    rootFolder = selectedFiles[0].name;
+  }
+
+  // Costruisci la struttura ad albero forzando la root
   const tree = {};
   selectedFiles.forEach(file => {
-    const relPath = file.webkitRelativePath || file.name;
+    let relPath = file.webkitRelativePath || file.name;
+    if (rootFolder && !relPath.startsWith(rootFolder)) {
+      relPath = rootFolder + "/" + relPath;
+    }
     const parts = relPath.split("/");
     let node = tree;
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       if (i === parts.length - 1) {
-        // È un file
         if (!node.files) node.files = [];
         node.files.push(part);
       } else {
@@ -187,7 +199,6 @@ function displaySelectedFiles() {
     }
   });
 
-  // Funzione ricorsiva per generare HTML ad albero
   function renderTree(node, level = 0) {
     let html = '<ul style="margin-left:' + (level * 20) + 'px">';
     for (const key in node) {
@@ -210,8 +221,6 @@ function displaySelectedFiles() {
     ${renderTree(tree)}
   `;
   container.style.display = "block";
-
-  // Mostra anche l'anteprima accanto (sidebar dedicata)
   if (previewTree) {
     previewTree.innerHTML = `<div class='mb-2'><b>Anteprima Upload</b></div>${renderTree(tree)}`;
   }
@@ -229,13 +238,35 @@ async function startUpload() {
   isUploading = true;
   const formData = new FormData();
 
-  // Trova tutte le cartelle principali selezionate
-  const topLevelFolders = mainFolderNames.length > 0 ? mainFolderNames : [selectedFiles[0].webkitRelativePath ? selectedFiles[0].webkitRelativePath.split("/")[0] : ""];
-
-  selectedFiles.forEach((file) => {
-    formData.append("files", file, file.webkitRelativePath || file.name);
+  // Trova la root
+  let rootFolder = "";
+  if (selectedFiles[0].webkitRelativePath && selectedFiles[0].webkitRelativePath.includes("/")) {
+    rootFolder = selectedFiles[0].webkitRelativePath.split("/")[0];
+  } else if (selectedFiles[0].webkitRelativePath) {
+    rootFolder = selectedFiles[0].webkitRelativePath;
+  } else if (selectedFiles[0].name && selectedFiles.length === 1) {
+    rootFolder = selectedFiles[0].name;
+  }
+  // Ricava tutte le cartelle (anche vuote) dai path dei file
+  let allFolders = new Set();
+  selectedFiles.forEach(file => {
+    let relPath = file.webkitRelativePath || file.name;
+    if (rootFolder && !relPath.startsWith(rootFolder)) {
+      relPath = rootFolder + "/" + relPath;
+    }
+    // Se sei dentro una sottocartella, prependi currentPath
+    if (currentPath) {
+      relPath = currentPath.replace(/^\/+|\/+$/g, "") + "/" + relPath;
+    }
+    formData.append("files", file, relPath);
+    const parts = relPath.split("/");
+    for (let i = 1; i < parts.length; i++) {
+      allFolders.add(parts.slice(0, i).join("/"));
+    }
   });
-  formData.append("destination", currentPath || "");
+  formData.append("destination", ""); // Non serve più, già incluso nei path
+  // Invia la lista delle cartelle come JSON
+  formData.append("folders", JSON.stringify(Array.from(allFolders)));
 
   // Mostra barra progresso
   document.getElementById("uploadProgress").style.display = "block";
