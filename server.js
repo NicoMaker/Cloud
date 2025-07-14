@@ -534,7 +534,6 @@ app.post("/upload", requireLogin, (req, res) => {
         console.log("[DEBUG] targetFullPath:", targetFullPath);
         console.log("[DEBUG] targetDirectory:", targetDirectory);
         if (!fs.existsSync(targetDirectory)) fs.mkdirSync(targetDirectory, { recursive: true });
-        console.log("Salvo file:", file.name, "->", targetFullPath); // LOG DEBUG
         file.mv(targetFullPath, (moveError) => {
           uploadResults.push({
             filename: file.name,
