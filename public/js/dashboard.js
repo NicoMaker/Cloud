@@ -237,35 +237,17 @@ async function startUpload() {
   }
   isUploading = true;
   const formData = new FormData();
-
-  // Trova la root
-  let rootFolder = "";
-  if (selectedFiles[0].webkitRelativePath && selectedFiles[0].webkitRelativePath.includes("/")) {
-    rootFolder = selectedFiles[0].webkitRelativePath.split("/")[0];
-  } else if (selectedFiles[0].webkitRelativePath) {
-    rootFolder = selectedFiles[0].webkitRelativePath;
-  } else if (selectedFiles[0].name && selectedFiles.length === 1) {
-    rootFolder = selectedFiles[0].name;
-  }
-  // Ricava tutte le cartelle (anche vuote) dai path dei file
   let allFolders = new Set();
   selectedFiles.forEach(file => {
-    let relPath = file.webkitRelativePath || file.name;
-    if (rootFolder && !relPath.startsWith(rootFolder)) {
-      relPath = rootFolder + "/" + relPath;
-    }
-    // Se sei dentro una sottocartella, prependi currentPath
-    if (currentPath) {
-      relPath = currentPath.replace(/^\/+|\/+$/g, "") + "/" + relPath;
-    }
+    const relPath = file.webkitRelativePath || file.name;
+    console.log("[DEBUG] Invio:", relPath);
     formData.append("files", file, relPath);
     const parts = relPath.split("/");
     for (let i = 1; i < parts.length; i++) {
       allFolders.add(parts.slice(0, i).join("/"));
     }
   });
-  formData.append("destination", ""); // Non serve più, già incluso nei path
-  // Invia la lista delle cartelle come JSON
+  console.log("[DEBUG] Tutti i path inviati:", Array.from(allFolders));
   formData.append("folders", JSON.stringify(Array.from(allFolders)));
 
   // Mostra barra progresso

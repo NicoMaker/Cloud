@@ -520,20 +520,21 @@ app.post("/upload", requireLogin, (req, res) => {
     if (!files) {
       return res.status(400).json({ success: false, message: "Nessun file trovato" });
     }
-    // La root di tutto è SEMPRE public/uploads
     const baseFolder = path.join(__dirname, "public/uploads");
     if (!fs.existsSync(baseFolder)) fs.mkdirSync(baseFolder, { recursive: true });
     const fileArray = Array.isArray(files) ? files : [files];
     const uploadResults = [];
     Promise.all(fileArray.map((file) => {
       return new Promise((resolve) => {
-        // Il path relativo ricevuto è già completo (anche per sottocartelle)
-        let targetRelativePath = file.name;
-        targetRelativePath = targetRelativePath.replace(/^\/+/, "");
+        let targetRelativePath = file.name.replace(/^\/+/, "");
         const targetFullPath = path.join(baseFolder, targetRelativePath);
         const targetDirectory = path.dirname(targetFullPath);
-        // Crea tutte le cartelle mancanti dentro uploads
+        console.log("[DEBUG] Ricevuto file.name:", file.name);
+        console.log("[DEBUG] targetRelativePath:", targetRelativePath);
+        console.log("[DEBUG] targetFullPath:", targetFullPath);
+        console.log("[DEBUG] targetDirectory:", targetDirectory);
         if (!fs.existsSync(targetDirectory)) fs.mkdirSync(targetDirectory, { recursive: true });
+        console.log("Salvo file:", file.name, "->", targetFullPath); // LOG DEBUG
         file.mv(targetFullPath, (moveError) => {
           uploadResults.push({
             filename: file.name,
@@ -545,7 +546,6 @@ app.post("/upload", requireLogin, (req, res) => {
         });
       });
     })).then(() => {
-      // Dopo aver gestito i file, creo tutte le cartelle richieste (anche vuote)
       if (req.body.folders) {
         let folders = [];
         try {
