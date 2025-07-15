@@ -239,15 +239,18 @@ async function startUpload() {
   const formData = new FormData();
   let allFolders = new Set();
   selectedFiles.forEach(file => {
-    const relPath = file.webkitRelativePath || file.name;
-    console.log("[DEBUG] Invio:", relPath);
+    let relPath = file.webkitRelativePath || file.name;
+    // Se sei in una sottocartella, aggiungi currentPath davanti
+    if (currentPath) {
+      relPath = currentPath + "/" + relPath;
+    }
+    relPath = relPath.replace(/^\/+/, ""); // rimuovi eventuali slash iniziali
     formData.append("files", file, relPath);
     const parts = relPath.split("/");
     for (let i = 1; i < parts.length; i++) {
       allFolders.add(parts.slice(0, i).join("/"));
     }
   });
-  console.log("[DEBUG] Tutti i path inviati:", Array.from(allFolders));
   formData.append("folders", JSON.stringify(Array.from(allFolders)));
 
   // Mostra barra progresso
