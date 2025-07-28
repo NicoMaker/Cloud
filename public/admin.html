@@ -1,179 +1,226 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pannello Admin - Gestione Utenti</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link href="css/admin.css" rel="stylesheet" />
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pannello Admin - Gestione Utenti</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="css/admin.css" rel="stylesheet">
-</head>
-
-<body>
-  <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="/dashboard.html">
-        <i class="fas fa-shield-alt me-2"></i>Pannello Admin Sicuro
-      </a>
-      <div class="navbar-nav ms-auto">
-        <a href="/dashboard.html" class="btn btn-outline-light btn-sm me-2">
-          <i class="fas fa-arrow-left me-1"></i>Torna alla Dashboard
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/dashboard.html">
+          <i class="fas fa-shield-alt me-2"></i>Pannello Admin Sicuro
         </a>
-        <a href="/logout" class="btn btn-outline-light btn-sm">
-          <i class="fas fa-sign-out-alt me-1"></i>Esci
-        </a>
-      </div>
-    </div>
-  </nav>
-
-  <div class="container mt-4">
-    <!-- Alerts -->
-    <div id="alertContainer"></div>
-
-    <!-- Create User Form -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="mb-0">
-          <i class="fas fa-user-plus me-2"></i>Crea Nuovo Utente
-        </h5>
-      </div>
-      <div class="card-body">
-        <form method="POST" action="/create-user" class="row g-3">
-          <div class="col-md-4">
-            <label for="username" class="form-label">Nome Utente</label>
-            <input type="text" class="form-control" id="username" name="username" required>
-          </div>
-          <div class="col-md-4">
-            <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="password" name="password" required>
-            <div class="password-strength" id="passwordStrength"></div>
-            <div class="password-requirements">
-              <small>
-                <i class="fas fa-shield-alt me-1"></i>
-                <strong>Requisiti Password:</strong>
-              </small>
-              <ul>
-                <li id="req-length">Almeno 8 caratteri</li>
-                <li id="req-upper">Una lettera maiuscola</li>
-                <li id="req-lower">Una lettera minuscola</li>
-                <li id="req-number">Un numero</li>
-                <li id="req-special">Un carattere speciale (!@#$%^&*)</li>
-              </ul>
-            </div>
-          </div>
-          <div class="col-md-2">
-            <label for="role" class="form-label">Ruolo</label>
-            <select class="form-select" id="role" name="role" required>
-              <option value="user">Utente</option>
-              <option value="admin">Admin</option>
-            </select>
-            <div class="form-text text-success">
-              <i class="fas fa-users-cog me-1"></i>
-              <small><strong>Sistema Multi-Admin:</strong> Puoi creare tutti gli admin necessari. Il sistema manterrà
-                sempre almeno un amministratore attivo.</small>
-            </div>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">&nbsp;</label>
-            <button type="submit" class="btn btn-gradient w-100" id="createUserBtn" disabled>
-              <i class="fas fa-plus me-1"></i>Crea
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Users List -->
-    <div class="card">
-      <div class="card-header">
-        <h5 class="mb-0">
-          <i class="fas fa-users me-2"></i>Gestione Utenti
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nome Utente</th>
-                <th>Ruolo</th>
-                <th>Creato</th>
-                <th>Ultimo Accesso</th>
-                <th>Azioni</th>
-              </tr>
-            </thead>
-            <tbody id="userTable">
-              <tr>
-                <td colspan="6" class="text-center">
-                  <i class="fas fa-spinner fa-spin me-2"></i>Caricamento utenti...
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="navbar-nav ms-auto">
+          <a href="/dashboard.html" class="btn btn-outline-light btn-sm me-2">
+            <i class="fas fa-arrow-left me-1"></i>Torna alla Dashboard
+          </a>
+          <a href="/logout" class="btn btn-outline-light btn-sm">
+            <i class="fas fa-sign-out-alt me-1"></i>Esci
+          </a>
         </div>
       </div>
-    </div>
-  </div>
+    </nav>
 
-  <!-- Edit User Modal -->
-  <div class="modal fade" id="editUserModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">
-            <i class="fas fa-user-edit me-2"></i>Modifica Utente
+    <div class="container mt-4">
+      <!-- Alerts -->
+      <div id="alertContainer"></div>
+
+      <!-- Create User Form -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-user-plus me-2"></i>Crea Nuovo Utente
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <form method="POST" action="/update-user">
-          <div class="modal-body">
-            <input type="hidden" id="editUserId" name="id">
-            <div class="mb-3">
-              <label for="editUsername" class="form-label">Nome Utente</label>
-              <input type="text" class="form-control" id="editUsername" name="username" required>
+        <div class="card-body">
+          <form method="POST" action="/create-user" class="row g-3">
+            <div class="col-md-4">
+              <label for="username" class="form-label">Nome Utente</label>
+              <input
+                type="text"
+                class="form-control"
+                id="username"
+                name="username"
+                required
+              />
             </div>
-            <div class="mb-3">
-              <label for="editPassword" class="form-label">Nuova Password (lascia vuoto per non modificare)</label>
-              <input type="password" class="form-control" id="editPassword" name="password">
-              <div class="password-strength" id="editPasswordStrength"></div>
+            <div class="col-md-4">
+              <label for="password" class="form-label">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+              />
+              <div class="password-strength" id="passwordStrength"></div>
               <div class="password-requirements">
                 <small>
-                  <i class="fas fa-info-circle me-1"></i>
-                  Lascia vuoto per mantenere la password attuale
+                  <i class="fas fa-shield-alt me-1"></i>
+                  <strong>Requisiti Password:</strong>
                 </small>
+                <ul>
+                  <li id="req-length">Almeno 8 caratteri</li>
+                  <li id="req-upper">Una lettera maiuscola</li>
+                  <li id="req-lower">Una lettera minuscola</li>
+                  <li id="req-number">Un numero</li>
+                  <li id="req-special">Un carattere speciale (!@#$%^&*)</li>
+                </ul>
               </div>
             </div>
-            <div class="mb-3">
-              <label for="editRole" class="form-label">Ruolo</label>
-              <select class="form-select" id="editRole" name="role" required>
+            <div class="col-md-2">
+              <label for="role" class="form-label">Ruolo</label>
+              <select class="form-select" id="role" name="role" required>
                 <option value="user">Utente</option>
                 <option value="admin">Admin</option>
               </select>
-            </div>
-            <div class="mb-3">
-              <div class="form-text text-info">
-                <i class="fas fa-info-circle me-1"></i>
-                <strong>Gestione Flessibile:</strong> Puoi eliminare qualsiasi admin (incluso quello iniziale) purché ne
-                rimanga almeno uno nel sistema.
+              <div class="form-text text-success">
+                <i class="fas fa-users-cog me-1"></i>
+                <small
+                  ><strong>Sistema Multi-Admin:</strong> Puoi creare tutti gli
+                  admin necessari. Il sistema manterrà sempre almeno un
+                  amministratore attivo.</small
+                >
               </div>
             </div>
+            <div class="col-md-2">
+              <label class="form-label">&nbsp;</label>
+              <button
+                type="submit"
+                class="btn btn-gradient w-100"
+                id="createUserBtn"
+                disabled
+              >
+                <i class="fas fa-plus me-1"></i>Crea
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Users List -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-users me-2"></i>Gestione Utenti</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nome Utente</th>
+                  <th>Ruolo</th>
+                  <th>Creato</th>
+                  <th>Ultimo Accesso</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="userTable">
+                <tr>
+                  <td colspan="6" class="text-center">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Caricamento
+                    utenti...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-            <button type="submit" class="btn btn-gradient">
-              <i class="fas fa-save me-1"></i>Salva Modifiche
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/admin.js"></script>
-</body>
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="fas fa-user-edit me-2"></i>Modifica Utente
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form method="POST" action="/update-user">
+            <div class="modal-body">
+              <input type="hidden" id="editUserId" name="id" />
+              <div class="mb-3">
+                <label for="editUsername" class="form-label">Nome Utente</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editUsername"
+                  name="username"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="editPassword" class="form-label"
+                  >Nuova Password (lascia vuoto per non modificare)</label
+                >
+                <input
+                  type="password"
+                  class="form-control"
+                  id="editPassword"
+                  name="password"
+                />
+                <div class="password-strength" id="editPasswordStrength"></div>
+                <div class="password-requirements">
+                  <small>
+                    <i class="fas fa-info-circle me-1"></i>
+                    Lascia vuoto per mantenere la password attuale
+                  </small>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="editRole" class="form-label">Ruolo</label>
+                <select class="form-select" id="editRole" name="role" required>
+                  <option value="user">Utente</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <div class="form-text text-info">
+                  <i class="fas fa-info-circle me-1"></i>
+                  <strong>Gestione Flessibile:</strong> Puoi eliminare qualsiasi
+                  admin (incluso quello iniziale) purché ne rimanga almeno uno
+                  nel sistema.
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Annulla
+              </button>
+              <button type="submit" class="btn btn-gradient">
+                <i class="fas fa-save me-1"></i>Salva Modifiche
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/admin.js"></script>
+  </body>
 </html>
