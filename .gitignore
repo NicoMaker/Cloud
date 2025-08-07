@@ -1,4 +1,4 @@
-node_modules
-public/uploads
-db
+backend/node_modules
+frontend/uploads
+backend/db
 cloud

@@ -136,7 +136,7 @@ function canChangeAdminToUser(adminId, callback) {
 }
 
 // Middleware
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "../frontend")));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(
@@ -268,7 +268,7 @@ app.get("/logout", (req, res) => {
 
 // Enhanced file API with complete file system view
 app.get("/api/files", requireLogin, (req, res) => {
-  const baseFolder = path.join(__dirname, "public/uploads");
+  const baseFolder = path.join(__dirname, "../frontend/uploads");
   const requestedFolder = path.join(baseFolder, req.query.folder || "");
 
   if (!fs.existsSync(requestedFolder)) {
@@ -565,7 +565,7 @@ function createPerfectFileSystemStructure(files, baseFolder) {
 
 // Enhanced upload with perfect folder structure creation
 app.post("/upload", requireLogin, (req, res) => {
-  // Tutto viene creato dentro public/uploads, rispettando il path relativo ricevuto
+  // Tutto viene creato dentro ../frontend/uploads, rispettando il path relativo ricevuto
   try {
     if (!req.files || Object.keys(req.files).length === 0) {
       return res
@@ -582,7 +582,7 @@ app.post("/upload", requireLogin, (req, res) => {
         .status(400)
         .json({ success: false, message: "Nessun file trovato" });
     }
-    const baseFolder = path.join(__dirname, "public/uploads");
+    const baseFolder = path.join(__dirname, "../frontend/uploads");
     if (!fs.existsSync(baseFolder))
       fs.mkdirSync(baseFolder, { recursive: true });
     const fileArray = Array.isArray(files) ? files : [files];
@@ -703,7 +703,7 @@ function generatePerfectTreeStructure(directories, fileDistribution) {
 }
 
 app.get("/download/*", requireLogin, (req, res) => {
-  const baseFolder = path.join(__dirname, "public/uploads");
+  const baseFolder = path.join(__dirname, "../frontend/uploads");
   const filePath = path.normalize(path.join(baseFolder, req.params[0]));
   if (!filePath.startsWith(baseFolder)) return res.status(403).end();
 
@@ -720,7 +720,7 @@ app.delete("/api/delete/*", requireLogin, (req, res) => {
     return res.status(403).json({ error: "Admin access required" });
   }
 
-  const baseFolder = path.join(__dirname, "public/uploads");
+  const baseFolder = path.join(__dirname, "../frontend/uploads");
   const filePath = path.normalize(path.join(baseFolder, req.params[0]));
 
   if (!filePath.startsWith(baseFolder)) {
@@ -760,7 +760,7 @@ app.delete("/api/delete/*", requireLogin, (req, res) => {
 
 // Delete all files and folders
 app.delete("/api/delete-all", requireAdmin, (req, res) => {
-  const baseFolder = path.join(__dirname, "public/uploads");
+  const baseFolder = path.join(__dirname, "../frontend/uploads");
 
   try {
     if (fs.existsSync(baseFolder)) {
@@ -1035,7 +1035,7 @@ app.post("/api/create-folder", requireLogin, (req, res) => {
       .json({ success: false, message: "Percorso non valido" });
   }
 
-  const baseFolder = path.join(__dirname, "public/uploads");
+  const baseFolder = path.join(__dirname, "../frontend/uploads");
   const fullPath = path.join(baseFolder, folderRelPath);
 
   try {
@@ -1051,7 +1051,7 @@ app.post("/api/create-folder", requireLogin, (req, res) => {
 app.get("/download-folder", requireLogin, (req, res) => {
   const folderPath = path.join(
     __dirname,
-    "public/uploads",
+    "../frontend/uploads",
     req.query.folder || "",
   );
   const zipName = path.basename(folderPath) + ".zip";
@@ -1067,7 +1067,7 @@ app.get("/download-folder", requireLogin, (req, res) => {
 
 // API ricorsiva per struttura ad albero
 app.get("/api/tree", requireLogin, (req, res) => {
-  const baseFolder = path.join(__dirname, "public/uploads");
+  const baseFolder = path.join(__dirname, "../frontend/uploads");
   const startFolder = req.query.folder
     ? path.join(baseFolder, req.query.folder)
     : baseFolder;
