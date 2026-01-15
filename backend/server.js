@@ -1095,7 +1095,7 @@ app.get("/api/tree", requireLogin, (req, res) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log("👤 Admin credentials: admin / Admin123!");
+  console.log("👤 Admin credentials: Admin / Admin123!");
   console.log(
     "🔒 Password requirements: 8+ chars, uppercase, lowercase, number, special char",
   );
