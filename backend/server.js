@@ -125,7 +125,6 @@ function countAdmins(callback) {
 function canDeleteAdmin(adminId, callback) {
   countAdmins((err, row) => {
     if (err) return callback(err, false);
-    // Può eliminare solo se ci sono più di 1 admin
     callback(null, row.count > 1);
   });
 }
@@ -133,7 +132,6 @@ function canDeleteAdmin(adminId, callback) {
 function canChangeAdminToUser(adminId, callback) {
   countAdmins((err, row) => {
     if (err) return callback(err, false);
-    // Può cambiare ruolo solo se ci sono più di 1 admin
     callback(null, row.count > 1);
   });
 }
@@ -191,7 +189,7 @@ app.use(
     useTempFiles: true,
     tempFileDir: "/tmp/",
     preserveExtension: true,
-    safeFileNames: false, // Mantieni nomi originali
+    safeFileNames: false,
     parseNested: true,
   }),
 );
@@ -226,16 +224,7 @@ app.use((req, res, next) => {
 
 // Auth middleware
 function requireLogin(req, res, next) {
-  console.log("🔐 Controllo autenticazione:", {
-    hasSession: !!req.session,
-    hasUser: !!req.session?.user,
-    path: req.path,
-    method: req.method,
-  });
-
   if (!req.session || !req.session.user) {
-    console.log("❌ Sessione non valida o utente non trovato");
-
     if (
       req.xhr ||
       req.headers.accept?.indexOf("json") > -1 ||
@@ -250,11 +239,6 @@ function requireLogin(req, res, next) {
     }
     return res.redirect("/login.html?error=session_expired");
   }
-
-  console.log(
-    "✅ Autenticazione valida per utente:",
-    req.session.user.username,
-  );
   next();
 }
 
@@ -285,7 +269,6 @@ app.post("/login", (req, res) => {
     }
 
     if (user && verifyPassword(password, user.password)) {
-      // Aggiorna ultimo login
       db.run("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", [
         user.id,
       ]);
@@ -311,7 +294,7 @@ app.get("/logout", (req, res) => {
   });
 });
 
-// Enhanced file API with complete file system view
+// API Files
 app.get("/api/files", requireLogin, (req, res) => {
   const baseFolder = path.join(__dirname, "../frontend/uploads");
   const requestedFolder = path.join(baseFolder, req.query.folder || "");
@@ -340,7 +323,6 @@ app.get("/api/files", requireLogin, (req, res) => {
       };
     });
 
-    // Sort: folders first, then files alphabetically
     result.sort((a, b) => {
       if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
       return a.name.localeCompare(b.name);
@@ -353,269 +335,77 @@ app.get("/api/files", requireLogin, (req, res) => {
   }
 });
 
-// Funzione avanzata per ricreare PERFETTAMENTE la struttura del file system
-function createPerfectFileSystemStructure(files, baseFolder) {
-  const fileSystemMap = new Map();
-  const allDirectories = new Set();
-  const filesByDirectory = new Map();
-  const directoryHierarchy = new Map();
+// =============================================
+//  ENDPOINT RINOMINA - NUOVO
+// =============================================
+app.post("/api/rename", requireLogin, (req, res) => {
+  const { oldPath, newName } = req.body;
 
-  console.log("=== ANALISI PERFETTA STRUTTURA FILE SYSTEM ===");
-  console.log(`📁 Base folder: ${baseFolder}`);
-  console.log(`📄 File totali da processare: ${files.length}`);
-
-  // FASE 1: Analisi completa e costruzione mappa gerarchica
-  files.forEach((file, index) => {
-    let fullRelativePath = file.name;
-
-    // DEBUG: Mostra tutte le proprietà del file
-    console.log(`\n📄 File ${index + 1}: "${file.name}"`);
-    console.log(
-      `   📁 webkitRelativePath: "${file.webkitRelativePath || "NON DISPONIBILE"}"`,
-    );
-    console.log(
-      `   📄 originalFilename: "${file.originalFilename || "NON DISPONIBILE"}"`,
-    );
-    console.log(`   🔍 Tutte le proprietà file:`, Object.keys(file));
-
-    // PRIORITÀ ASSOLUTA al webkitRelativePath per cartelle
-    if (file.webkitRelativePath && file.webkitRelativePath.trim() !== "") {
-      fullRelativePath = file.webkitRelativePath;
-      console.log(
-        `✅ CARTELLA RILEVATA - Usando webkitRelativePath: "${fullRelativePath}"`,
-      );
-    } else if (
-      file.originalFilename &&
-      file.originalFilename !== file.name &&
-      file.originalFilename.includes("/")
-    ) {
-      // Fallback per originalFilename se contiene percorso
-      fullRelativePath = file.originalFilename;
-      console.log(
-        `✅ PERCORSO ALTERNATIVO - Usando originalFilename: "${fullRelativePath}"`,
-      );
-    } else {
-      console.log(
-        `⚠️  NESSUN PERCORSO CARTELLA - File andrà nella root: "${fullRelativePath}"`,
-      );
-    }
-
-    // Normalizza il percorso mantenendo la struttura originale
-    fullRelativePath = fullRelativePath.replace(/\\/g, "/").replace(/^\/+/, "");
-
-    console.log(`🎯 Percorso finale calcolato: "${fullRelativePath}"`);
-
-    // Analizza il percorso completo
-    const pathSegments = fullRelativePath.split("/");
-    const fileName = pathSegments[pathSegments.length - 1];
-    const directorySegments = pathSegments.slice(0, -1);
-
-    console.log(`   📂 Segmenti directory: [${directorySegments.join(" → ")}]`);
-    console.log(`   📄 Nome file finale: "${fileName}"`);
-
-    if (directorySegments.length > 0) {
-      console.log(
-        `   🎯 File andrà nella cartella: "${directorySegments.join("/")}"`,
-      );
-    } else {
-      console.log(`   🏠 File andrà nella ROOT`);
-    }
-
-    // Costruisci TUTTE le directory nel percorso (incluse quelle intermedie)
-    let currentDirectoryPath = "";
-    directorySegments.forEach((segment, segmentIndex) => {
-      if (segmentIndex > 0) currentDirectoryPath += "/";
-      currentDirectoryPath += segment;
-
-      allDirectories.add(currentDirectoryPath);
-      console.log(`      📁 Directory mappata: "${currentDirectoryPath}"`);
-
-      // Costruisci gerarchia
-      const parentPath =
-        segmentIndex > 0
-          ? directorySegments.slice(0, segmentIndex).join("/")
-          : "";
-      if (!directoryHierarchy.has(parentPath)) {
-        directoryHierarchy.set(parentPath, new Set());
-      }
-      directoryHierarchy.get(parentPath).add(currentDirectoryPath);
-
-      // Inizializza directory nella mappa file
-      if (!filesByDirectory.has(currentDirectoryPath)) {
-        filesByDirectory.set(currentDirectoryPath, []);
-      }
-    });
-
-    // Assegna il file alla directory finale
-    const finalDirectory =
-      directorySegments.length > 0 ? directorySegments.join("/") : "";
-
-    if (!filesByDirectory.has(finalDirectory)) {
-      filesByDirectory.set(finalDirectory, []);
-    }
-
-    const fileInfo = {
-      originalFile: file,
-      fileName: fileName,
-      fullPath: fullRelativePath,
-      directory: finalDirectory,
-      isRootFile: directorySegments.length === 0,
-      pathSegments: pathSegments,
-      directorySegments: directorySegments,
-    };
-
-    filesByDirectory.get(finalDirectory).push(fileInfo);
-    fileSystemMap.set(fullRelativePath, fileInfo);
-
-    console.log(
-      `   ✅ File assegnato alla directory: "${finalDirectory || "ROOT"}"`,
-    );
-    console.log(`   📍 Percorso completo finale: "${fullRelativePath}"`);
-  });
-
-  // FASE 2: Creazione fisica ordinata delle directory
-  console.log("\n=== CREAZIONE FISICA STRUTTURA DIRECTORY ===");
-  console.log(`📁 Directory totali da creare: ${allDirectories.size}`);
-
-  const createdDirectories = new Set();
-  const failedDirectories = new Set();
-
-  // Ordina le directory per profondità (prima le più superficiali)
-  const sortedDirectories = Array.from(allDirectories).sort((a, b) => {
-    const depthA = a.split("/").length;
-    const depthB = b.split("/").length;
-    if (depthA !== depthB) return depthA - depthB;
-    return a.localeCompare(b);
-  });
-
-  console.log("\n📋 Ordine di creazione directory:");
-  sortedDirectories.forEach((dir, index) => {
-    const depth = dir.split("/").length;
-    const indent = "  ".repeat(depth);
-    console.log(`${index + 1}. ${indent}📁 "${dir}" (profondità: ${depth})`);
-  });
-
-  // Crea le directory in ordine
-  sortedDirectories.forEach((directoryPath) => {
-    const fullDirectoryPath = path.join(baseFolder, directoryPath);
-    const depth = directoryPath.split("/").length;
-    const indent = "  ".repeat(depth);
-
-    console.log(`\n${indent}🏗️  Creando: "${directoryPath}"`);
-    console.log(`${indent}   Percorso assoluto: ${fullDirectoryPath}`);
-
-    try {
-      // Verifica che la directory padre esista
-      const parentDir = path.dirname(fullDirectoryPath);
-      if (!fs.existsSync(parentDir)) {
-        console.log(`${indent}   ⚠️  Directory padre mancante: ${parentDir}`);
-        console.log(`${indent}   🔧 Creazione directory padre...`);
-        fs.mkdirSync(parentDir, { recursive: true });
-      }
-
-      // Crea la directory
-      if (!fs.existsSync(fullDirectoryPath)) {
-        fs.mkdirSync(fullDirectoryPath, { recursive: true });
-        console.log(`${indent}   ✅ Directory creata con successo`);
-        createdDirectories.add(directoryPath);
-      } else {
-        console.log(`${indent}   ⚠️  Directory già esistente`);
-        createdDirectories.add(directoryPath);
-      }
-
-      // Verifica finale
-      const stats = fs.statSync(fullDirectoryPath);
-      if (stats.isDirectory()) {
-        console.log(`${indent}   ✅ Verifica: Directory valida e accessibile`);
-      } else {
-        console.log(
-          `${indent}   ❌ Errore: Percorso esiste ma non è una directory`,
-        );
-        failedDirectories.add(directoryPath);
-      }
-    } catch (error) {
-      console.error(
-        `${indent}   ❌ Errore creazione directory:`,
-        error.message,
-      );
-      failedDirectories.add(directoryPath);
-    }
-  });
-
-  // FASE 3: Verifica struttura e generazione statistiche
-  console.log("\n=== VERIFICA STRUTTURA FILE SYSTEM ===");
-
-  const maxDepth =
-    allDirectories.size > 0
-      ? Math.max(...Array.from(allDirectories).map((d) => d.split("/").length))
-      : 0;
-  const totalFiles = files.length;
-  const totalDirectories = allDirectories.size;
-  const rootFiles = filesByDirectory.get("") || [];
-
-  console.log("📊 STATISTICHE FINALI:");
-  console.log(
-    `   📁 Directory create: ${createdDirectories.size}/${totalDirectories}`,
-  );
-  console.log(`   📄 File totali: ${totalFiles}`);
-  console.log(`   📊 Profondità massima: ${maxDepth}`);
-  console.log(`   🏠 File nella root: ${rootFiles.length}`);
-  console.log(`   ❌ Directory fallite: ${failedDirectories.size}`);
-
-  if (failedDirectories.size > 0) {
-    console.log("❌ Directory non create:");
-    failedDirectories.forEach((dir) => console.log(`   - ${dir}`));
+  // Validazione input
+  if (!oldPath || !newName) {
+    return res.status(400).json({ success: false, message: "Parametri mancanti" });
   }
 
-  // Mostra struttura ad albero finale
-  console.log("\n🌳 STRUTTURA AD ALBERO FINALE:");
-  console.log("📁 ROOT");
+  // Sicurezza: nessun path traversal nel nuovo nome
+  if (newName.includes("/") || newName.includes("\\") || newName.includes("..")) {
+    return res.status(400).json({ success: false, message: "Nome non valido" });
+  }
 
-  // File nella root
-  rootFiles.forEach((fileInfo) => {
-    console.log(`   📄 ${fileInfo.fileName}`);
-  });
+  const baseFolder = path.join(__dirname, "../frontend/uploads");
 
-  // Directory e contenuti
-  sortedDirectories.forEach((dirPath) => {
-    if (createdDirectories.has(dirPath)) {
-      const depth = dirPath.split("/").length;
-      const indent = "  ".repeat(depth + 1);
-      const dirName = dirPath.split("/").pop();
-      const parentIndent = "  ".repeat(depth);
+  // Percorso sorgente
+  const oldFullPath = path.normalize(path.join(baseFolder, oldPath));
 
-      console.log(`${parentIndent}📁 ${dirName}/`);
+  // Verifica che il percorso sia dentro la cartella uploads
+  if (!oldFullPath.startsWith(baseFolder)) {
+    return res.status(403).json({ success: false, message: "Percorso non consentito" });
+  }
 
-      const filesInDir = filesByDirectory.get(dirPath) || [];
-      filesInDir.forEach((fileInfo) => {
-        console.log(`${indent}📄 ${fileInfo.fileName}`);
-      });
-    }
-  });
+  if (!fs.existsSync(oldFullPath)) {
+    return res.status(404).json({ success: false, message: "File o cartella non trovato" });
+  }
 
-  return {
-    allDirectories: Array.from(allDirectories),
-    createdDirectories: Array.from(createdDirectories),
-    failedDirectories: Array.from(failedDirectories),
-    filesByDirectory: filesByDirectory,
-    fileSystemMap: fileSystemMap,
-    directoryHierarchy: directoryHierarchy,
-    totalDirectories: totalDirectories,
-    totalFiles: totalFiles,
-    maxDepth: maxDepth,
-    rootFiles: rootFiles.length,
-    success: failedDirectories.size === 0,
-  };
-}
+  // Percorso destinazione: stessa cartella padre, solo cambio nome
+  const parentDir = path.dirname(oldFullPath);
+  const newFullPath = path.join(parentDir, newName);
 
-// Enhanced upload with perfect folder structure creation
+  // Verifica che anche la destinazione sia dentro uploads
+  if (!newFullPath.startsWith(baseFolder)) {
+    return res.status(403).json({ success: false, message: "Percorso destinazione non consentito" });
+  }
+
+  // Verifica che non esista già qualcosa con quel nome
+  if (fs.existsSync(newFullPath)) {
+    return res.status(409).json({ success: false, message: "Esiste già un file o cartella con questo nome" });
+  }
+
+  try {
+    fs.renameSync(oldFullPath, newFullPath);
+
+    // Aggiorna i record nel database se è un file
+    const oldRelPath = path.relative(baseFolder, oldFullPath).replace(/\\/g, "/");
+    const newRelPath = path.relative(baseFolder, newFullPath).replace(/\\/g, "/");
+
+    db.run(
+      "UPDATE file_uploads SET filepath = ?, filename = ? WHERE filepath = ?",
+      [newRelPath, newName, oldRelPath],
+    );
+
+    console.log(`✏️  Rinominato: "${oldRelPath}" → "${newRelPath}"`);
+    io.emit("filesChanged", { action: "rename", timestamp: Date.now() });
+
+    res.json({ success: true, newPath: newRelPath });
+  } catch (error) {
+    console.error("❌ Errore rinomina:", error);
+    res.status(500).json({ success: false, message: "Errore durante la rinomina: " + error.message });
+  }
+});
+
+// Upload
 app.post("/upload", requireLogin, (req, res) => {
-  // Tutto viene creato dentro ../frontend/uploads, rispettando il path relativo ricevuto
   try {
     if (!req.files || Object.keys(req.files).length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Nessun file caricato" });
+      return res.status(400).json({ success: false, message: "Nessun file caricato" });
     }
     let files = req.files.files;
     if (!files) {
@@ -623,18 +413,14 @@ app.post("/upload", requireLogin, (req, res) => {
       if (fileKeys.length > 0) files = req.files[fileKeys[0]];
     }
     if (!files) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Nessun file trovato" });
+      return res.status(400).json({ success: false, message: "Nessun file trovato" });
     }
     const baseFolder = path.join(__dirname, "../frontend/uploads");
-    if (!fs.existsSync(baseFolder))
-      fs.mkdirSync(baseFolder, { recursive: true });
+    if (!fs.existsSync(baseFolder)) fs.mkdirSync(baseFolder, { recursive: true });
     const fileArray = Array.isArray(files) ? files : [files];
     const uploadResults = [];
     let relativePaths = [];
-    const rawRelativePaths =
-      req.body["relativePaths[]"] ?? req.body.relativePaths ?? null;
+    const rawRelativePaths = req.body["relativePaths[]"] ?? req.body.relativePaths ?? null;
 
     if (Array.isArray(rawRelativePaths)) {
       relativePaths = rawRelativePaths.map((p) => String(p));
@@ -657,7 +443,6 @@ app.post("/upload", requireLogin, (req, res) => {
         .map((k) => String(rawRelativePaths[k]));
     }
 
-    console.log("[DEBUG] relativePaths ricevuti:", relativePaths.length);
     Promise.all(
       fileArray.map((file, index) => {
         return new Promise((resolve) => {
@@ -681,20 +466,13 @@ app.post("/upload", requireLogin, (req, res) => {
           }
           const targetFullPath = path.join(baseFolder, targetRelativePath);
           const targetDirectory = path.dirname(targetFullPath);
-          console.log("[DEBUG] Ricevuto file.name:", file.name);
-          console.log("[DEBUG] targetRelativePath:", targetRelativePath);
-          console.log("[DEBUG] targetFullPath:", targetFullPath);
-          console.log("[DEBUG] targetDirectory:", targetDirectory);
-          if (!fs.existsSync(targetDirectory))
-            fs.mkdirSync(targetDirectory, { recursive: true });
+          if (!fs.existsSync(targetDirectory)) fs.mkdirSync(targetDirectory, { recursive: true });
           file.mv(targetFullPath, (moveError) => {
             uploadResults.push({
               filename: file.name,
               status: moveError ? "error" : "success",
               error: moveError ? moveError.message : undefined,
-              savedAs: path
-                .relative(baseFolder, targetFullPath)
-                .replace(/\\/g, "/"),
+              savedAs: path.relative(baseFolder, targetFullPath).replace(/\\/g, "/"),
             });
             resolve();
           });
@@ -704,9 +482,7 @@ app.post("/upload", requireLogin, (req, res) => {
       .then(() => {
         if (req.body.folders) {
           let folders = [];
-          try {
-            folders = JSON.parse(req.body.folders);
-          } catch (e) {}
+          try { folders = JSON.parse(req.body.folders); } catch (e) {}
           folders.forEach((folderRel) => {
             const folderPath = path.join(baseFolder, folderRel);
             if (!fs.existsSync(folderPath)) {
@@ -714,9 +490,7 @@ app.post("/upload", requireLogin, (req, res) => {
             }
           });
         }
-        const successful = uploadResults.filter(
-          (r) => r.status === "success",
-        ).length;
+        const successful = uploadResults.filter((r) => r.status === "success").length;
         const failed = uploadResults.filter((r) => r.status === "error").length;
         if (successful > 0) {
           io.emit("filesChanged", { action: "upload", timestamp: Date.now() });
@@ -725,10 +499,7 @@ app.post("/upload", requireLogin, (req, res) => {
           success: failed === 0,
           totalFiles: successful,
           results: uploadResults,
-          message:
-            failed === 0
-              ? "Caricamento completato"
-              : `Caricamento completato con ${failed} errori`,
+          message: failed === 0 ? "Caricamento completato" : `Caricamento completato con ${failed} errori`,
         });
       })
       .catch((error) => {
@@ -751,48 +522,6 @@ app.post("/upload", requireLogin, (req, res) => {
   }
 });
 
-// Funzione helper per generare struttura ad albero perfetta
-function generatePerfectTreeStructure(directories, fileDistribution) {
-  const tree = {
-    name: "ROOT",
-    type: "directory",
-    path: "",
-    children: [],
-    files: fileDistribution.get("ROOT") || [],
-    fileCount: (fileDistribution.get("ROOT") || []).length,
-  };
-
-  const sortedDirs = directories.sort();
-
-  sortedDirs.forEach((dirPath) => {
-    const parts = dirPath.split("/");
-    let current = tree;
-
-    parts.forEach((part, index) => {
-      const currentPath = parts.slice(0, index + 1).join("/");
-      let found = current.children.find((child) => child.name === part);
-
-      if (!found) {
-        const filesInDir = fileDistribution.get(currentPath) || [];
-        found = {
-          name: part,
-          type: "directory",
-          path: currentPath,
-          children: [],
-          files: filesInDir,
-          fileCount: filesInDir.length,
-          depth: index + 1,
-        };
-        current.children.push(found);
-      }
-
-      current = found;
-    });
-  });
-
-  return tree;
-}
-
 app.get("/download/*", requireLogin, (req, res) => {
   const baseFolder = path.join(__dirname, "../frontend/uploads");
   const filePath = path.normalize(path.join(baseFolder, req.params[0]));
@@ -805,7 +534,6 @@ app.get("/download/*", requireLogin, (req, res) => {
   }
 });
 
-// Enhanced delete with database cleanup
 app.delete("/api/delete/*", requireLogin, (req, res) => {
   if (req.session.user.role !== "admin") {
     return res.status(403).json({ error: "Admin access required" });
@@ -821,21 +549,14 @@ app.delete("/api/delete/*", requireLogin, (req, res) => {
   if (fs.existsSync(filePath)) {
     try {
       const stats = fs.statSync(filePath);
-      const relativePath = path
-        .relative(baseFolder, filePath)
-        .replace(/\\/g, "/");
+      const relativePath = path.relative(baseFolder, filePath).replace(/\\/g, "/");
 
-      // Elimina file/cartella dal filesystem
       fs.rmSync(filePath, { recursive: true, force: true });
 
-      // Elimina record dal database
       if (stats.isFile()) {
         db.run("DELETE FROM file_uploads WHERE filepath = ?", [relativePath]);
       } else {
-        // Se è una cartella, elimina tutti i file che iniziano con quel percorso
-        db.run("DELETE FROM file_uploads WHERE filepath LIKE ?", [
-          `${relativePath}/%`,
-        ]);
+        db.run("DELETE FROM file_uploads WHERE filepath LIKE ?", [`${relativePath}/%`]);
       }
 
       console.log(`✅ Eliminato: ${filePath}`);
@@ -850,19 +571,15 @@ app.delete("/api/delete/*", requireLogin, (req, res) => {
   }
 });
 
-// Delete all files and folders
 app.delete("/api/delete-all", requireAdmin, (req, res) => {
   const baseFolder = path.join(__dirname, "../frontend/uploads");
 
   try {
     if (fs.existsSync(baseFolder)) {
-      // Elimina tutti i file e cartelle
       fs.rmSync(baseFolder, { recursive: true, force: true });
-      // Ricrea la cartella vuota
       fs.mkdirSync(baseFolder, { recursive: true });
     }
 
-    // Elimina tutti i record dal database
     db.run("DELETE FROM file_uploads", (err) => {
       if (err) {
         console.error("❌ Errore pulizia database:", err);
@@ -871,20 +588,15 @@ app.delete("/api/delete-all", requireAdmin, (req, res) => {
 
       console.log("🗑️  Eliminati tutti i file e dati");
       io.emit("filesChanged", { action: "delete-all", timestamp: Date.now() });
-      res.json({
-        success: true,
-        message: "Tutti i file e dati sono stati eliminati",
-      });
+      res.json({ success: true, message: "Tutti i file e dati sono stati eliminati" });
     });
   } catch (error) {
     console.error("❌ Errore eliminazione completa:", error);
-    res
-      .status(500)
-      .json({ error: "Delete all failed", message: error.message });
+    res.status(500).json({ error: "Delete all failed", message: error.message });
   }
 });
 
-// User management routes (Admin only) with enhanced admin protection
+// User management
 app.get("/api/users", requireAdmin, (req, res) => {
   db.all(
     "SELECT id, username, role, created_at, last_login FROM users ORDER BY role DESC, username",
@@ -892,7 +604,6 @@ app.get("/api/users", requireAdmin, (req, res) => {
       if (err) {
         res.status(500).json({ error: "Database error" });
       } else {
-        // Aggiungi informazioni sui permessi per ogni utente
         countAdmins((countErr, adminCount) => {
           if (countErr) {
             return res.status(500).json({ error: "Error counting admins" });
@@ -923,7 +634,6 @@ app.post("/create-user", requireAdmin, (req, res) => {
     return res.redirect("/admin.html?error=missing_fields");
   }
 
-  // Valida password
   const passwordErrors = validatePassword(password);
   if (passwordErrors.length > 0) {
     return res.redirect(
@@ -931,7 +641,6 @@ app.post("/create-user", requireAdmin, (req, res) => {
     );
   }
 
-  // Creazione libera di utenti e admin
   const hashedPassword = hashPassword(password);
 
   db.run(
@@ -947,9 +656,6 @@ app.post("/create-user", requireAdmin, (req, res) => {
         }
       } else {
         console.log(`✅ Utente creato: ${username} (${role})`);
-        if (role === "admin") {
-          console.log("👑 Nuovo amministratore aggiunto al sistema");
-        }
         res.redirect("/admin.html?success=user_created");
       }
     },
@@ -963,7 +669,6 @@ app.post("/update-user", requireAdmin, (req, res) => {
     return res.redirect("/admin.html?error=missing_fields");
   }
 
-  // Valida password se fornita
   if (password) {
     const passwordErrors = validatePassword(password);
     if (passwordErrors.length > 0) {
@@ -973,7 +678,6 @@ app.post("/update-user", requireAdmin, (req, res) => {
     }
   }
 
-  // Controlla se si sta tentando di cambiare un admin a user
   db.get("SELECT role FROM users WHERE id = ?", [id], (err, user) => {
     if (err) {
       console.error("Database error:", err);
@@ -984,14 +688,10 @@ app.post("/update-user", requireAdmin, (req, res) => {
       return res.redirect("/admin.html?error=user_not_found");
     }
 
-    // Se l'utente è admin e si sta tentando di cambiarlo a user
     if (user.role === "admin" && role === "user") {
       canChangeAdminToUser(id, (canChangeErr, canChange) => {
         if (canChangeErr) {
-          console.error(
-            "Error checking admin change permission:",
-            canChangeErr,
-          );
+          console.error("Error checking admin change permission:", canChangeErr);
           return res.redirect("/admin.html?error=database_error");
         }
 
@@ -1011,8 +711,7 @@ app.post("/update-user", requireAdmin, (req, res) => {
       let query, params;
       if (password) {
         const hashedPassword = hashPassword(password);
-        query =
-          "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
+        query = "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
         params = [username, hashedPassword, role, id];
       } else {
         query = "UPDATE users SET username = ?, role = ? WHERE id = ?";
@@ -1041,7 +740,6 @@ app.post("/delete-user", requireAdmin, (req, res) => {
     return res.redirect("/admin.html?error=invalid_user_id");
   }
 
-  // Controlla se l'utente è admin e se può essere eliminato
   db.get("SELECT role FROM users WHERE id = ?", [id], (err, user) => {
     if (err) {
       console.error("Database error:", err);
@@ -1055,10 +753,7 @@ app.post("/delete-user", requireAdmin, (req, res) => {
     if (user.role === "admin") {
       canDeleteAdmin(id, (canDeleteErr, canDelete) => {
         if (canDeleteErr) {
-          console.error(
-            "Error checking admin delete permission:",
-            canDeleteErr,
-          );
+          console.error("Error checking admin delete permission:", canDeleteErr);
           return res.redirect("/admin.html?error=database_error");
         }
 
@@ -1097,13 +792,9 @@ app.get("/session-info", (req, res) => {
   res.json({ id, role, username });
 });
 
-// Endpoint per verificare sessione
 app.get("/api/session-check", (req, res) => {
   if (!req.session || !req.session.user) {
-    return res.status(401).json({
-      valid: false,
-      message: "Sessione non valida",
-    });
+    return res.status(401).json({ valid: false, message: "Sessione non valida" });
   }
 
   res.json({
@@ -1116,7 +807,7 @@ app.get("/api/session-check", (req, res) => {
   });
 });
 
-// WebSocket for real-time updates
+// WebSocket
 io.on("connection", (socket) => {
   console.log("Client connected for real-time updates");
 
@@ -1135,9 +826,7 @@ io.on("connection", (socket) => {
 app.post("/api/create-folder", requireLogin, (req, res) => {
   const folderRelPath = req.body?.path;
   if (!folderRelPath || folderRelPath.includes("..")) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Percorso non valido" });
+    return res.status(400).json({ success: false, message: "Percorso non valido" });
   }
 
   const baseFolder = path.join(__dirname, "../frontend/uploads");
@@ -1171,7 +860,6 @@ app.get("/download-folder", requireLogin, (req, res) => {
   archive.finalize();
 });
 
-// API ricorsiva per struttura ad albero
 app.get("/api/tree", requireLogin, (req, res) => {
   const baseFolder = path.join(__dirname, "../frontend/uploads");
   const startFolder = req.query.folder
@@ -1202,7 +890,6 @@ const PORT = process.env.PORT || 3000;
 
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
-
   for (const addresses of Object.values(interfaces)) {
     for (const address of addresses || []) {
       if (address.family === "IPv4" && !address.internal) {
@@ -1210,7 +897,6 @@ function getLocalIP() {
       }
     }
   }
-
   return "127.0.0.1";
 }
 
@@ -1245,17 +931,11 @@ server.listen(PORT, "0.0.0.0", async () => {
     ? `http://${publicIP}:${PORT}`
     : `http://localhost:${PORT}`;
 
-  console.log("✅ Backend avviato su VPS");
+  console.log("✅ Backend avviato");
   console.log(`🌐 IP Pubblico: ${publicIP ? publicBaseUrl : "non disponibile"}`);
   console.log(`🏠 IP Locale: http://${localIP}:${PORT}`);
   console.log(`📍 Localhost: http://localhost:${PORT}`);
   console.log("🔌 Socket.IO abilitato per sincronizzazione real-time");
-  console.log("📂 Frontend servito da: ../frontend/index.html");
-  console.log(`🏥 Health check: ${publicBaseUrl}/api/health`);
-  console.log(`💾 Download DB: ${publicBaseUrl}/api/admin/download-db`);
+  console.log("✏️  Rinomina file/cartelle: /api/rename");
   console.log("👤 Admin credentials: Admin / Admin123!");
-  console.log(
-    "🔒 Password requirements: 8+ chars, uppercase, lowercase, number, special char",
-  );
-  console.log("🛡️  Admin protection: Last admin cannot be deleted or demoted");
 });

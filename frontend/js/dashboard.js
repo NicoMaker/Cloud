@@ -39,7 +39,6 @@ async function checkSession() {
 }
 
 function initializeApp() {
-  // Carica info sessione utente
   fetch("/session-info")
     .then((res) => {
       if (res.status === 401) {
@@ -67,19 +66,14 @@ function initializeApp() {
     })
     .catch((err) => {
       console.error("Errore nel caricamento info sessione:", err);
-      showToast(
-        "Errore di autenticazione. Reindirizzamento al login...",
-        "error",
-      );
+      showToast("Errore di autenticazione. Reindirizzamento al login...", "error");
       setTimeout(() => {
         window.location.href = "/login.html?error=auth_error";
       }, 2000);
     });
 
-  // Carica lista file iniziale
   loadFiles("");
 
-  // Controllo sessione periodico ogni 5 minuti
   setInterval(
     async () => {
       const valid = await checkSession();
@@ -88,7 +82,7 @@ function initializeApp() {
       }
     },
     5 * 60 * 1000,
-  ); // 5 minuti
+  );
 }
 
 function setupEventListeners() {
@@ -96,15 +90,21 @@ function setupEventListeners() {
   const folderInput = document.getElementById("folderInput");
   const confirmText = document.getElementById("confirmText");
 
-  // Eventi input file
   fileInput.addEventListener("change", handleFileSelection);
   folderInput.addEventListener("change", handleFolderSelection);
 
-  // Controllo testo conferma eliminazione
   if (confirmText) {
     confirmText.addEventListener("input", (e) => {
       const confirmBtn = document.getElementById("confirmDeleteAll");
       confirmBtn.disabled = e.target.value !== "ELIMINA TUTTO";
+    });
+  }
+
+  // Premere Invio nella modale rinomina
+  const renameInput = document.getElementById("renameNewName");
+  if (renameInput) {
+    renameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") confirmRename();
     });
   }
 }
@@ -124,7 +124,6 @@ function setupSocketConnection() {
   });
 
   socket.on("filesChanged", () => {
-    // Aggiorna subito la cartella corrente e gli alberi senza ricaricare la pagina.
     loadFiles(currentPath);
     fetchAndShowSidebarTree(currentPath);
     showMainTree(currentPath);
@@ -136,8 +135,7 @@ function setupSocketConnection() {
     if (reason === "account_deleted") {
       message = "Il tuo utente e' stato eliminato. Verrai reindirizzato al login.";
     } else if (reason === "account_updated") {
-      message =
-        "Il tuo account e' stato modificato. Esegui di nuovo l'accesso.";
+      message = "Il tuo account e' stato modificato. Esegui di nuovo l'accesso.";
     }
     showToast(message, "warning");
     setTimeout(() => {
@@ -146,7 +144,80 @@ function setupSocketConnection() {
   });
 }
 
-// Funzioni Selezione File
+// =============================================
+//  FUNZIONE RINOMINA
+// =============================================
+
+function openRenameModal(oldPath, type) {
+  const parts = oldPath.split("/");
+  const currentName = parts[parts.length - 1];
+
+  document.getElementById("renameOldPath").value = oldPath;
+  document.getElementById("renameType").value = type;
+  const input = document.getElementById("renameNewName");
+  input.value = currentName;
+
+  const modal = new bootstrap.Modal(document.getElementById("renameModal"));
+  modal.show();
+
+  // Focus e selezione testo dopo apertura modale
+  document.getElementById("renameModal").addEventListener(
+    "shown.bs.modal",
+    () => {
+      input.focus();
+      input.select();
+    },
+    { once: true }
+  );
+}
+
+async function confirmRename() {
+  const oldPath = document.getElementById("renameOldPath").value;
+  const newName = document.getElementById("renameNewName").value.trim();
+
+  if (!newName) {
+    showToast("Inserisci un nome valido", "warning");
+    return;
+  }
+
+  if (newName.includes("/") || newName.includes("..")) {
+    showToast("Il nome non può contenere / o ..", "error");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/rename", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ oldPath, newName }),
+      credentials: "same-origin",
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Chiudi la modale
+      const modalEl = document.getElementById("renameModal");
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+
+      showToast(`Rinominato con successo in "${newName}"`, "success");
+      loadFiles(currentPath);
+      fetchAndShowSidebarTree(currentPath);
+      showMainTree(currentPath);
+    } else {
+      showToast("Errore durante la rinomina: " + (data.message || "Errore sconosciuto"), "error");
+    }
+  } catch (err) {
+    console.error("Errore rinomina:", err);
+    showToast("Errore durante la rinomina", "error");
+  }
+}
+
+// =============================================
+//  SELEZIONE FILE
+// =============================================
+
 function selectFiles() {
   document.getElementById("fileInput").click();
 }
@@ -157,17 +228,8 @@ function selectFolder() {
 
 function handleFileSelection(e) {
   const files = Array.from(e.target.files);
-  console.log("=== SELEZIONE FILE INDIVIDUALI ===");
-  console.log(`📄 File selezionati: ${files.length}`);
-
-  files.forEach((file, index) => {
-    console.log(`${index + 1}. ${file.name} (${formatFileSize(file.size)})`);
-  });
-
   selectedFiles = files;
   displaySelectedFiles();
-
-  // Pulisci l'altro input
   document.getElementById("folderInput").value = "";
 }
 
@@ -175,7 +237,6 @@ function handleFolderSelection(e) {
   const files = Array.from(e.target.files);
   mainFolderNames = [];
   if (files.length > 0) {
-    // Ricava tutti i nomi delle cartelle principali selezionate
     files.forEach((file) => {
       const relPath = file.webkitRelativePath;
       if (relPath && relPath.includes("/")) {
@@ -194,28 +255,20 @@ function handleFolderSelection(e) {
 function displaySelectedFiles() {
   const container = document.getElementById("selectedFiles");
   const filesList = document.getElementById("filesList");
-  const previewTree = document.getElementById("uploadPreviewTree");
 
   if (!selectedFiles.length) {
     container.style.display = "none";
-    if (previewTree) previewTree.innerHTML = "";
     return;
   }
 
-  // Trova la cartella principale (root) dal primo file selezionato
   let rootFolder = "";
   if (
     selectedFiles[0].webkitRelativePath &&
     selectedFiles[0].webkitRelativePath.includes("/")
   ) {
     rootFolder = selectedFiles[0].webkitRelativePath.split("/")[0];
-  } else if (selectedFiles[0].webkitRelativePath) {
-    rootFolder = selectedFiles[0].webkitRelativePath;
-  } else if (selectedFiles[0].name && selectedFiles.length === 1) {
-    rootFolder = selectedFiles[0].name;
   }
 
-  // Costruisci la struttura ad albero forzando la root
   const tree = {};
   selectedFiles.forEach((file) => {
     let relPath = file.webkitRelativePath || file.name;
@@ -258,9 +311,6 @@ function displaySelectedFiles() {
     ${renderTree(tree)}
   `;
   container.style.display = "block";
-  if (previewTree) {
-    previewTree.innerHTML = `<div class='mb-2'><b>Anteprima Upload</b></div>${renderTree(tree)}`;
-  }
 }
 
 async function startUpload() {
@@ -278,11 +328,10 @@ async function startUpload() {
   const relativePaths = [];
   selectedFiles.forEach((file) => {
     let relPath = file.webkitRelativePath || file.name;
-    // Se sei in una sottocartella, aggiungi currentPath davanti
     if (currentPath) {
       relPath = currentPath + "/" + relPath;
     }
-    relPath = relPath.replace(/\\/g, "/").replace(/^\/+/, ""); // normalizza percorso
+    relPath = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
     relativePaths.push(relPath);
     formData.append("files", file, relPath);
     formData.append("relativePaths[]", relPath);
@@ -310,12 +359,9 @@ async function startUpload() {
       );
       return;
     }
-    showToast(
-      `✅ ${data.totalFiles || 0} file caricati con successo!`,
-      "success",
-    );
+    showToast(`✅ ${data.totalFiles || 0} file caricati con successo!`, "success");
     clearSelection();
-    loadFiles(currentPath); // aggiorna la vista della cartella corrente
+    loadFiles(currentPath);
     fetchAndShowSidebarTree(currentPath);
     showMainTree(currentPath);
   } catch (error) {
@@ -333,46 +379,14 @@ function clearSelection() {
   document.getElementById("filesList").innerHTML = "";
 }
 
-// Funzione helper per analizzare la struttura dei file
-function analyzeFileStructure(files) {
-  const folders = new Set();
-  let rootFiles = 0;
-  let maxDepth = 0;
-
-  files.forEach((file) => {
-    const path = file.webkitRelativePath || file.name;
-
-    if (path.includes("/")) {
-      const dirPath = path.substring(0, path.lastIndexOf("/"));
-      const depth = dirPath.split("/").length;
-      maxDepth = Math.max(maxDepth, depth);
-
-      // Aggiungi tutte le directory nel percorso
-      const parts = dirPath.split("/");
-      let currentPath = "";
-      parts.forEach((part) => {
-        currentPath += (currentPath ? "/" : "") + part;
-        folders.add(currentPath);
-      });
-    } else {
-      rootFiles++;
-    }
-  });
-
-  return {
-    foldersToCreate: folders.size,
-    rootFiles: rootFiles,
-    maxDepth: maxDepth,
-    folderList: Array.from(folders).sort(),
-  };
-}
-
 function updateUploadProgress(data) {
-  // Nascosto per non mostrare il loader
   console.log(`Upload: ${data.processed}/${data.total} (${data.percentage}%)`);
 }
 
-// Funzioni Browser File
+// =============================================
+//  BROWSER FILE
+// =============================================
+
 function loadFiles(folderPath) {
   currentPath = folderPath;
   updateBreadcrumb(folderPath);
@@ -393,39 +407,9 @@ function loadFiles(folderPath) {
     });
 }
 
-function loadFilesAndScrollToNew(folderPath) {
-  const oldFileCount = document.getElementById("fileList").children.length;
-
-  loadFiles(folderPath);
-
-  // Scorri verso il basso dopo un breve ritardo per permettere il rendering
-  setTimeout(() => {
-    const newRows = document.getElementById("fileList").children;
-
-    if (newRows.length > oldFileCount) {
-      // Scorri verso gli ultimi file aggiunti
-      const lastRow = newRows[newRows.length - 1];
-      if (lastRow) {
-        lastRow.scrollIntoView({ behavior: "smooth", block: "center" });
-        // Evidenzia brevemente i nuovi file
-        for (let i = oldFileCount; i < newRows.length; i++) {
-          if (newRows[i]) {
-            newRows[i].classList.add("new-file-highlight");
-            setTimeout(() => {
-              newRows[i].classList.remove("new-file-highlight");
-            }, 3000);
-          }
-        }
-      }
-    }
-  }, 500);
-}
-
 function displayFiles(files, folderPath) {
-  const filesContainer = document.getElementById("filesContainer");
   const sidebar = document.getElementById("sidebarTree");
 
-  // Costruisci una struttura ad albero dai file ricevuti
   const tree = {};
   files.forEach((item) => {
     const parts = item.path.split("/");
@@ -433,7 +417,6 @@ function displayFiles(files, folderPath) {
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       if (i === parts.length - 1) {
-        // È un file o una cartella
         if (item.type === "folder") {
           if (!node[part]) node[part] = {};
         } else {
@@ -447,7 +430,6 @@ function displayFiles(files, folderPath) {
     }
   });
 
-  // Funzione ricorsiva per generare HTML ad albero
   function renderTree(node, level = 0) {
     let html = '<ul style="margin-left:' + level * 16 + 'px">';
     for (const key in node) {
@@ -465,7 +447,6 @@ function displayFiles(files, folderPath) {
     return html;
   }
 
-  // Mostra la struttura ad albero nella sidebar
   if (sidebar) {
     sidebar.innerHTML = `<div class='mb-2'><b>Struttura Cloud</b></div>${renderTree(tree)}`;
   }
@@ -473,7 +454,6 @@ function displayFiles(files, folderPath) {
   const fileList = document.getElementById("fileList");
   fileList.innerHTML = "";
 
-  // Aggiungi link directory padre se non alla radice
   if (folderPath !== "") {
     const parentPath = folderPath.split("/").slice(0, -1).join("/");
     const row = document.createElement("tr");
@@ -499,20 +479,18 @@ function displayFiles(files, folderPath) {
           <i class="fas fa-folder-open fa-3x mb-3 text-muted"></i>
           <br><strong>Nessun file caricato</strong>
           <br><small>Inizia caricando alcuni file o cartelle!</small>
-          <br><small class="text-primary">Il sistema ricreerà automaticamente la struttura originale</small>
       </td>
     `;
     fileList.appendChild(row);
     return;
   }
 
-  // Ordina: cartelle prima, poi file alfabeticamente
   files.sort((a, b) => {
     if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
     return a.name.localeCompare(b.name, "it", { numeric: true });
   });
 
-  files.forEach((file, index) => {
+  files.forEach((file) => {
     const row = document.createElement("tr");
     row.className = "fade-in file-row";
     row.setAttribute("data-file-type", file.type);
@@ -521,6 +499,28 @@ function displayFiles(files, folderPath) {
     const icon = getFileIcon(file);
     const size = file.type === "folder" ? "-" : formatFileSize(file.size);
     const modified = new Date(file.modified).toLocaleDateString("it-IT");
+
+    // Pulsante rinomina (penna) - visibile a tutti gli utenti loggati
+    const renameBtn = `
+      <button onclick="openRenameModal('${file.path}', '${file.type}')" 
+              class="btn btn-outline-secondary btn-sm" 
+              title="Rinomina">
+        <i class="fas fa-pen"></i>
+      </button>`;
+
+    // Pulsante download solo per file
+    const downloadBtn = file.type === "file"
+      ? `<a href="/download/${file.path}" class="btn btn-outline-primary btn-sm" title="Scarica">
+           <i class="fas fa-download"></i>
+         </a>`
+      : "";
+
+    // Pulsante elimina solo per admin
+    const deleteBtn = userRole === "admin"
+      ? `<button onclick="deleteItem('${file.path}', '${file.name}')" class="btn btn-outline-danger btn-sm" title="Elimina">
+           <i class="fas fa-trash"></i>
+         </button>`
+      : "";
 
     row.innerHTML = `
       <td>
@@ -536,21 +536,12 @@ function displayFiles(files, folderPath) {
       </td>
       <td><span class="text-muted">${size}</span></td>
       <td><span class="text-muted small">${modified}</span></td>
-      <td class="file-actions">
-          ${
-            file.type === "file"
-              ? `<a href="/download/${file.path}" class="btn btn-outline-primary btn-sm" title="Scarica">
-                   <i class="fas fa-download"></i>
-                 </a>`
-              : ""
-          }
-          ${
-            userRole === "admin"
-              ? `<button onclick="deleteItem('${file.path}', '${file.name}')" class="btn btn-outline-danger btn-sm" title="Elimina">
-                   <i class="fas fa-trash"></i>
-                 </button>`
-              : ""
-          }
+      <td>
+        <div class="file-actions">
+          ${downloadBtn}
+          ${renameBtn}
+          ${deleteBtn}
+        </div>
       </td>
     `;
     fileList.appendChild(row);
@@ -574,10 +565,7 @@ function deleteItem(path, name) {
         showToast(`"${name}" eliminato con successo`, "success");
         loadFiles(currentPath);
       } else {
-        showToast(
-          "Eliminazione fallita: " + (data.message || data.error),
-          "error",
-        );
+        showToast("Eliminazione fallita: " + (data.message || data.error), "error");
       }
     })
     .catch((err) => {
@@ -586,7 +574,6 @@ function deleteItem(path, name) {
     });
 }
 
-// Funzione Elimina Tutto
 async function confirmDeleteAll() {
   const confirmText = document.getElementById("confirmText").value;
 
@@ -595,17 +582,11 @@ async function confirmDeleteAll() {
     return;
   }
 
-  // Controlla sessione e permessi
   const sessionValid = await checkSession();
-  if (!sessionValid) {
-    return;
-  }
+  if (!sessionValid) return;
 
   if (userRole !== "admin") {
-    showToast(
-      "Solo gli amministratori possono eliminare tutti i file",
-      "error",
-    );
+    showToast("Solo gli amministratori possono eliminare tutti i file", "error");
     return;
   }
 
@@ -621,17 +602,12 @@ async function confirmDeleteAll() {
 
     if (response.status === 401) {
       showToast("Sessione scaduta. Reindirizzamento al login...", "error");
-      setTimeout(() => {
-        window.location.href = "/login.html?error=session_expired";
-      }, 2000);
+      setTimeout(() => { window.location.href = "/login.html?error=session_expired"; }, 2000);
       return;
     }
 
     if (response.status === 403) {
-      showToast(
-        "Accesso negato. Solo gli amministratori possono eliminare tutti i file.",
-        "error",
-      );
+      showToast("Accesso negato. Solo gli amministratori possono eliminare tutti i file.", "error");
       return;
     }
 
@@ -641,18 +617,12 @@ async function confirmDeleteAll() {
       showToast(data.message, "success");
       loadFiles("");
 
-      // Chiudi modal e resetta form
-      const modal = bootstrap.Modal.getInstance(
-        document.getElementById("deleteAllModal"),
-      );
+      const modal = bootstrap.Modal.getInstance(document.getElementById("deleteAllModal"));
       modal.hide();
       document.getElementById("confirmText").value = "";
       document.getElementById("confirmDeleteAll").disabled = true;
     } else {
-      showToast(
-        "Eliminazione fallita: " + (data.message || data.error),
-        "error",
-      );
+      showToast("Eliminazione fallita: " + (data.message || data.error), "error");
     }
   } catch (err) {
     console.error("Errore eliminazione totale:", err);
@@ -665,7 +635,10 @@ function deleteAllFiles() {
   modal.show();
 }
 
-// Funzioni Utilità
+// =============================================
+//  UTILITÀ
+// =============================================
+
 function updateBreadcrumb(path) {
   const breadcrumb = document.getElementById("breadcrumb");
   breadcrumb.innerHTML =
@@ -694,41 +667,32 @@ function updateBreadcrumb(path) {
 }
 
 function getFileIcon(file) {
-  if (file.type === "folder") {
-    return "fas fa-folder text-warning";
-  }
+  if (file.type === "folder") return "fas fa-folder text-warning";
 
   const ext = file.name.split(".").pop().toLowerCase();
 
-  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext)) {
+  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext))
     return "fas fa-image text-success";
-  } else if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(ext)) {
+  else if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(ext))
     return "fas fa-file-alt text-primary";
-  } else if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext)) {
+  else if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext))
     return "fas fa-file-archive text-secondary";
-  } else if (["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(ext)) {
+  else if (["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(ext))
     return "fas fa-file-video text-danger";
-  } else if (["mp3", "wav", "flac", "aac", "ogg", "wma"].includes(ext)) {
+  else if (["mp3", "wav", "flac", "aac", "ogg", "wma"].includes(ext))
     return "fas fa-file-audio text-info";
-  } else if (
-    ["js", "html", "css", "php", "py", "java", "cpp", "c"].includes(ext)
-  ) {
+  else if (["js", "html", "css", "php", "py", "java", "cpp", "c"].includes(ext))
     return "fas fa-file-code text-dark";
-  } else {
+  else
     return "fas fa-file text-muted";
-  }
 }
 
 function formatFileSize(bytes) {
   if (bytes === 0) return "0 Byte";
-
   const k = 1024;
   const sizes = ["Byte", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return (
-    Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-  );
+  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
 function showToast(message, type = "info") {
@@ -763,11 +727,9 @@ function showToast(message, type = "info") {
   `;
 
   toastContainer.appendChild(toastEl);
-
   const toast = new bootstrap.Toast(toastEl);
   toast.show();
 
-  // Rimuovi elemento toast dopo che è nascosto
   toastEl.addEventListener("hidden.bs.toast", () => {
     toastEl.remove();
   });
@@ -803,10 +765,7 @@ function createNewFolder() {
         fetchAndShowSidebarTree(currentPath);
         showMainTree(currentPath);
       } else {
-        showToast(
-          "Errore: " + (data.message || "Impossibile creare la cartella."),
-          "error",
-        );
+        showToast("Errore: " + (data.message || "Impossibile creare la cartella."), "error");
       }
     })
     .catch((err) => {
@@ -815,7 +774,6 @@ function createNewFolder() {
     });
 }
 
-// Funzione per mostrare la struttura reale del cloud nella sidebar
 async function fetchAndShowSidebarTree(folder = "") {
   const sidebar = document.getElementById("sidebarTree");
   if (!sidebar) return;
@@ -841,12 +799,10 @@ async function fetchAndShowSidebarTree(folder = "") {
     }
     sidebar.innerHTML = `<div class='mb-2'><b>Struttura Cloud</b></div>${renderTree(tree)}`;
   } catch (e) {
-    sidebar.innerHTML =
-      '<div class="text-danger">Errore caricamento struttura cloud</div>';
+    sidebar.innerHTML = '<div class="text-danger">Errore caricamento struttura cloud</div>';
   }
 }
 
-// Funzione per mostrare la struttura reale del cloud nella parte centrale
 async function showMainTree(folder = "") {
   const mainContainer = document.getElementById("mainTree");
   if (!mainContainer) return;
@@ -872,12 +828,10 @@ async function showMainTree(folder = "") {
     }
     mainContainer.innerHTML = `<div class='mb-2'><b>Contenuto Cloud</b></div>${renderTree(tree)}`;
   } catch (e) {
-    mainContainer.innerHTML =
-      '<div class="text-danger">Errore caricamento struttura cloud</div>';
+    mainContainer.innerHTML = '<div class="text-danger">Errore caricamento struttura cloud</div>';
   }
 }
 
-// Chiamala all'avvio e dopo ogni upload
 window.addEventListener("DOMContentLoaded", () => {
   fetchAndShowSidebarTree();
   showMainTree();
