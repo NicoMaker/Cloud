@@ -294,10 +294,6 @@ async function startUpload() {
   formData.append("relativePaths", JSON.stringify(relativePaths));
   formData.append("folders", JSON.stringify(Array.from(allFolders)));
 
-  // Mostra barra progresso
-  document.getElementById("uploadProgress").style.display = "block";
-  document.getElementById("selectedFiles").style.display = "none";
-
   try {
     const response = await fetch("/upload", {
       method: "POST",
@@ -306,7 +302,6 @@ async function startUpload() {
     });
     const data = await response.json();
     isUploading = false;
-    document.getElementById("uploadProgress").style.display = "none";
     if (!response.ok || !data.success) {
       showToast(
         "Errore durante il caricamento: " +
@@ -327,8 +322,15 @@ async function startUpload() {
     console.error("Errore upload:", error);
     showToast("Errore durante il caricamento dei file", "danger");
     isUploading = false;
-    document.getElementById("uploadProgress").style.display = "none";
   }
+}
+
+function clearSelection() {
+  selectedFiles = [];
+  document.getElementById("fileInput").value = "";
+  document.getElementById("folderInput").value = "";
+  document.getElementById("selectedFiles").style.display = "none";
+  document.getElementById("filesList").innerHTML = "";
 }
 
 // Funzione helper per analizzare la struttura dei file
@@ -366,30 +368,8 @@ function analyzeFileStructure(files) {
 }
 
 function updateUploadProgress(data) {
-  const progressBar = document.getElementById("progressBar");
-  const progressText = document.getElementById("progressText");
-
-  progressBar.style.width = `${data.percentage}%`;
-  progressText.textContent = `${data.processed}/${data.total} file (${data.percentage}%)`;
-
-  // Mostra informazioni dettagliate sul file corrente
-  if (data.currentFolder && data.currentPath) {
-    const currentFileInfo = document.createElement("div");
-    currentFileInfo.className = "current-file-info mt-2 small text-muted";
-    currentFileInfo.innerHTML = `
-      <i class="fas fa-upload me-1"></i>
-      <strong>${data.currentFile}</strong> → 
-      <i class="fas fa-folder me-1"></i>${data.currentFolder}
-    `;
-
-    // Sostituisci le info precedenti
-    const existingInfo = document.querySelector(".current-file-info");
-    if (existingInfo) {
-      existingInfo.replaceWith(currentFileInfo);
-    } else {
-      document.getElementById("uploadProgress").appendChild(currentFileInfo);
-    }
-  }
+  // Nascosto per non mostrare il loader
+  console.log(`Upload: ${data.processed}/${data.total} (${data.percentage}%)`);
 }
 
 // Funzioni Browser File
@@ -443,7 +423,7 @@ function loadFilesAndScrollToNew(folderPath) {
 
 function displayFiles(files, folderPath) {
   const filesContainer = document.getElementById("filesContainer");
-  const sidebar = document.getElementById("sidebarTree"); // Assicurati che esista un elemento con questo id
+  const sidebar = document.getElementById("sidebarTree");
 
   // Costruisci una struttura ad albero dai file ricevuti
   const tree = {};
@@ -559,7 +539,7 @@ function displayFiles(files, folderPath) {
       <td class="file-actions">
           ${
             file.type === "file"
-              ? `<a href="/download/${file.path}" class="btn btn-outline-primary btn-sm me-1" title="Scarica">
+              ? `<a href="/download/${file.path}" class="btn btn-outline-primary btn-sm" title="Scarica">
                    <i class="fas fa-download"></i>
                  </a>`
               : ""
@@ -797,8 +777,13 @@ function createNewFolder() {
   const input = document.getElementById("newFolderName");
   const folderName = input.value.trim();
 
-  if (!folderName || folderName.includes("..")) {
-    alert("Inserisci un nome valido per la cartella.");
+  if (!folderName) {
+    showToast("Inserisci un nome per la cartella", "warning");
+    return;
+  }
+
+  if (folderName.includes("..") || folderName.includes("/")) {
+    showToast("Nome cartella non valido", "error");
     return;
   }
 
@@ -813,15 +798,20 @@ function createNewFolder() {
     .then((data) => {
       if (data.success) {
         input.value = "";
+        showToast(`Cartella "${folderName}" creata con successo!`, "success");
         loadFiles(currentPath);
-        showToast("Cartella creata con successo!", "success");
+        fetchAndShowSidebarTree(currentPath);
+        showMainTree(currentPath);
       } else {
-        alert("Errore: " + (data.message || "Impossibile creare la cartella."));
+        showToast(
+          "Errore: " + (data.message || "Impossibile creare la cartella."),
+          "error",
+        );
       }
     })
     .catch((err) => {
       console.error("Errore nella creazione:", err);
-      alert("Errore durante la creazione della cartella.");
+      showToast("Errore durante la creazione della cartella.", "error");
     });
 }
 
@@ -892,6 +882,3 @@ window.addEventListener("DOMContentLoaded", () => {
   fetchAndShowSidebarTree();
   showMainTree();
 });
-// Dopo ogni upload successo:
-// fetchAndShowSidebarTree(currentPath);
-// showMainTree(currentPath);
