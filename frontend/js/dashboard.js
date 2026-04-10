@@ -113,6 +113,13 @@ function setupSocketConnection() {
   socket.on("connect", () => {
     console.log("Connesso al server per aggiornamenti in tempo reale");
   });
+
+  socket.on("filesChanged", () => {
+    // Aggiorna subito la cartella corrente e gli alberi senza ricaricare la pagina.
+    loadFiles(currentPath);
+    fetchAndShowSidebarTree(currentPath);
+    showMainTree(currentPath);
+  });
 }
 
 // Funzioni Selezione File

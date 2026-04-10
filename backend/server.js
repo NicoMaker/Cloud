@@ -673,6 +673,9 @@ app.post("/upload", requireLogin, (req, res) => {
           (r) => r.status === "success",
         ).length;
         const failed = uploadResults.filter((r) => r.status === "error").length;
+        if (successful > 0) {
+          io.emit("filesChanged", { action: "upload", timestamp: Date.now() });
+        }
         return res.json({
           success: failed === 0,
           totalFiles: successful,
@@ -791,6 +794,7 @@ app.delete("/api/delete/*", requireLogin, (req, res) => {
       }
 
       console.log(`✅ Eliminato: ${filePath}`);
+      io.emit("filesChanged", { action: "delete", timestamp: Date.now() });
       res.json({ success: true, message: "Eliminazione completata" });
     } catch (error) {
       console.error("❌ Errore eliminazione:", error);
@@ -821,6 +825,7 @@ app.delete("/api/delete-all", requireAdmin, (req, res) => {
       }
 
       console.log("🗑️  Eliminati tutti i file e dati");
+      io.emit("filesChanged", { action: "delete-all", timestamp: Date.now() });
       res.json({
         success: true,
         message: "Tutti i file e dati sono stati eliminati",
@@ -1084,6 +1089,7 @@ app.post("/api/create-folder", requireLogin, (req, res) => {
   try {
     fs.mkdirSync(fullPath, { recursive: true });
     console.log("📁 Cartella creata:", fullPath);
+    io.emit("filesChanged", { action: "create-folder", timestamp: Date.now() });
     res.json({ success: true });
   } catch (err) {
     console.error("Errore creazione cartella:", err);
