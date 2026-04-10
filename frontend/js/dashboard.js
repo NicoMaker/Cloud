@@ -3,6 +3,7 @@ let currentPath = "";
 let selectedFiles = [];
 let socket;
 let userRole = "user";
+let currentUserId = null;
 let isUploading = false;
 const io = window.io;
 const bootstrap = window.bootstrap;
@@ -50,9 +51,14 @@ function initializeApp() {
     .then((data) => {
       if (!data) return;
 
+      currentUserId = data.id;
       userRole = data.role;
       document.getElementById("userInfo").innerHTML =
         `<i class="fas fa-user me-1"></i>${data.username} (${data.role})`;
+
+      if (socket && currentUserId) {
+        socket.emit("registerUserSession", { userId: currentUserId });
+      }
 
       if (data.role === "admin") {
         document.getElementById("adminBtn").style.display = "inline-block";
@@ -112,6 +118,9 @@ function setupSocketConnection() {
 
   socket.on("connect", () => {
     console.log("Connesso al server per aggiornamenti in tempo reale");
+    if (currentUserId) {
+      socket.emit("registerUserSession", { userId: currentUserId });
+    }
   });
 
   socket.on("filesChanged", () => {
@@ -119,6 +128,21 @@ function setupSocketConnection() {
     loadFiles(currentPath);
     fetchAndShowSidebarTree(currentPath);
     showMainTree(currentPath);
+  });
+
+  socket.on("forceLogout", (payload) => {
+    const reason = payload?.reason || "account_changed";
+    let message = "La tua sessione e' stata chiusa.";
+    if (reason === "account_deleted") {
+      message = "Il tuo utente e' stato eliminato. Verrai reindirizzato al login.";
+    } else if (reason === "account_updated") {
+      message =
+        "Il tuo account e' stato modificato. Esegui di nuovo l'accesso.";
+    }
+    showToast(message, "warning");
+    setTimeout(() => {
+      window.location.href = "/login.html?error=account_changed";
+    }, 1200);
   });
 }
 

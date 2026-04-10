@@ -13,6 +13,7 @@ const archiver = require("archiver");
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+const USER_ROOM_PREFIX = "user:";
 
 // Funzioni di sicurezza password
 function hashPassword(password) {
@@ -135,6 +136,48 @@ function canChangeAdminToUser(adminId, callback) {
   });
 }
 
+function getUserRoom(userId) {
+  return `${USER_ROOM_PREFIX}${userId}`;
+}
+
+function destroyUserSessionsByUserId(userId, callback) {
+  if (!app.sessionStore || typeof app.sessionStore.all !== "function") {
+    return callback();
+  }
+
+  app.sessionStore.all((allErr, sessions) => {
+    if (allErr || !sessions) {
+      console.error("Errore lettura sessioni:", allErr);
+      return callback();
+    }
+
+    const matchingSessionIds = Object.entries(sessions)
+      .filter(([, sess]) => Number(sess?.user?.id) === Number(userId))
+      .map(([sid]) => sid);
+
+    if (matchingSessionIds.length === 0) {
+      return callback();
+    }
+
+    let pending = matchingSessionIds.length;
+    matchingSessionIds.forEach((sid) => {
+      app.sessionStore.destroy(sid, (destroyErr) => {
+        if (destroyErr) {
+          console.error("Errore destroy session:", destroyErr);
+        }
+        pending -= 1;
+        if (pending === 0) callback();
+      });
+    });
+  });
+}
+
+function forceLogoutUserEverywhere(userId, reason = "account_changed", callback) {
+  io.to(getUserRoom(userId)).emit("forceLogout", { reason });
+  io.in(getUserRoom(userId)).disconnectSockets(true);
+  destroyUserSessionsByUserId(userId, callback || (() => {}));
+}
+
 // Middleware
 app.use(express.static(path.join(__dirname, "../frontend")));
 app.use(express.urlencoded({ extended: true }));
@@ -150,8 +193,7 @@ app.use(
     parseNested: true,
   }),
 );
-app.use(
-  session({
+const sessionMiddleware = session({
     secret: crypto.randomBytes(32).toString("hex"),
     resave: false,
     saveUninitialized: false,
@@ -163,8 +205,9 @@ app.use(
       sameSite: "lax",
     },
     name: "filemanager.sid",
-  }),
-);
+  });
+app.use(sessionMiddleware);
+app.sessionStore = sessionMiddleware.store;
 
 // Debug middleware per sessioni
 app.use((req, res, next) => {
@@ -980,7 +1023,9 @@ app.post("/update-user", requireAdmin, (req, res) => {
           res.redirect("/admin.html?error=update_failed");
         } else {
           console.log(`✅ Utente aggiornato: ${username} (${role})`);
-          res.redirect("/admin.html?success=user_updated");
+          forceLogoutUserEverywhere(id, "account_updated", () => {
+            res.redirect("/admin.html?success=user_updated");
+          });
         }
       });
     }
@@ -1034,7 +1079,9 @@ app.post("/delete-user", requireAdmin, (req, res) => {
           res.redirect("/admin.html?error=delete_failed");
         } else {
           console.log(`✅ Utente eliminato: ID ${id}`);
-          res.redirect("/admin.html?success=user_deleted");
+          forceLogoutUserEverywhere(id, "account_deleted", () => {
+            res.redirect("/admin.html?success=user_deleted");
+          });
         }
       });
     }
@@ -1042,9 +1089,10 @@ app.post("/delete-user", requireAdmin, (req, res) => {
 });
 
 app.get("/session-info", (req, res) => {
+  const id = req.session?.user?.id || null;
   const role = req.session?.user?.role || "guest";
   const username = req.session?.user?.username || "guest";
-  res.json({ role, username });
+  res.json({ id, role, username });
 });
 
 // Endpoint per verificare sessione
@@ -1069,6 +1117,13 @@ app.get("/api/session-check", (req, res) => {
 // WebSocket for real-time updates
 io.on("connection", (socket) => {
   console.log("Client connected for real-time updates");
+
+  socket.on("registerUserSession", (payload) => {
+    const userId = Number(payload?.userId);
+    if (!Number.isNaN(userId) && userId > 0) {
+      socket.join(getUserRoom(userId));
+    }
+  });
 
   socket.on("disconnect", () => {
     console.log("Client disconnected");
