@@ -587,10 +587,53 @@ app.post("/upload", requireLogin, (req, res) => {
       fs.mkdirSync(baseFolder, { recursive: true });
     const fileArray = Array.isArray(files) ? files : [files];
     const uploadResults = [];
+    let relativePaths = [];
+    const rawRelativePaths =
+      req.body["relativePaths[]"] ?? req.body.relativePaths ?? null;
+
+    if (Array.isArray(rawRelativePaths)) {
+      relativePaths = rawRelativePaths.map((p) => String(p));
+    } else if (typeof rawRelativePaths === "string") {
+      try {
+        const parsed = JSON.parse(rawRelativePaths);
+        if (Array.isArray(parsed)) {
+          relativePaths = parsed.map((p) => String(p));
+        } else if (rawRelativePaths.trim() !== "") {
+          relativePaths = [rawRelativePaths];
+        }
+      } catch (e) {
+        if (rawRelativePaths.trim() !== "") {
+          relativePaths = [rawRelativePaths];
+        }
+      }
+    } else if (rawRelativePaths && typeof rawRelativePaths === "object") {
+      relativePaths = Object.keys(rawRelativePaths)
+        .sort((a, b) => Number(a) - Number(b))
+        .map((k) => String(rawRelativePaths[k]));
+    }
+
+    console.log("[DEBUG] relativePaths ricevuti:", relativePaths.length);
     Promise.all(
-      fileArray.map((file) => {
+      fileArray.map((file, index) => {
         return new Promise((resolve) => {
-          let targetRelativePath = file.name.replace(/^\/+/, "");
+          const incomingRelativePath = relativePaths[index] || file.name;
+          let targetRelativePath = String(incomingRelativePath)
+            .replace(/\\/g, "/")
+            .replace(/^\/+/, "");
+          targetRelativePath = path.posix.normalize(targetRelativePath);
+          if (
+            targetRelativePath === "." ||
+            targetRelativePath === "" ||
+            targetRelativePath.startsWith("../") ||
+            targetRelativePath.includes("/../")
+          ) {
+            uploadResults.push({
+              filename: file.name,
+              status: "error",
+              error: "Percorso file non valido",
+            });
+            return resolve();
+          }
           const targetFullPath = path.join(baseFolder, targetRelativePath);
           const targetDirectory = path.dirname(targetFullPath);
           console.log("[DEBUG] Ricevuto file.name:", file.name);
