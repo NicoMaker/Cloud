@@ -7,6 +7,8 @@ const fs = require("fs");
 const http = require("http");
 const socketIo = require("socket.io");
 const crypto = require("crypto");
+const os = require("os");
+const https = require("https");
 
 const archiver = require("archiver");
 
@@ -1197,8 +1199,60 @@ app.get("/api/tree", requireLogin, (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+
+  for (const addresses of Object.values(interfaces)) {
+    for (const address of addresses || []) {
+      if (address.family === "IPv4" && !address.internal) {
+        return address.address;
+      }
+    }
+  }
+
+  return "127.0.0.1";
+}
+
+async function getPublicIP() {
+  try {
+    return await new Promise((resolve, reject) => {
+      https
+        .get("https://api.ipify.org?format=json", (res) => {
+          let data = "";
+          res.on("data", (chunk) => (data += chunk));
+          res.on("end", () => {
+            try {
+              const ip = JSON.parse(data).ip;
+              resolve(ip || null);
+            } catch (error) {
+              reject(error);
+            }
+          });
+        })
+        .on("error", reject);
+    });
+  } catch (error) {
+    console.error("⚠️ Impossibile recuperare IP pubblico:", error.message);
+    return null;
+  }
+}
+
+server.listen(PORT, "0.0.0.0", async () => {
+  const localIP = getLocalIP();
+  const publicIP = await getPublicIP();
+  const publicBaseUrl = publicIP
+    ? `http://${publicIP}:${PORT}`
+    : `http://localhost:${PORT}`;
+
+  console.log("✅ Backend avviato su VPS");
+  console.log(`🌐 IP Pubblico: ${publicIP ? publicBaseUrl : "non disponibile"}`);
+  console.log(`🏠 IP Locale: http://${localIP}:${PORT}`);
+  console.log(`📍 Localhost: http://localhost:${PORT}`);
+  console.log("🔌 Socket.IO abilitato per sincronizzazione real-time");
+  console.log("📂 Frontend servito da: ../frontend/index.html");
+  console.log(`🏥 Health check: ${publicBaseUrl}/api/health`);
+  console.log(`💾 Download DB: ${publicBaseUrl}/api/admin/download-db`);
   console.log("👤 Admin credentials: Admin / Admin123!");
   console.log(
     "🔒 Password requirements: 8+ chars, uppercase, lowercase, number, special char",
