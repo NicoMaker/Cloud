@@ -336,7 +336,7 @@ app.get("/api/files", requireLogin, (req, res) => {
 });
 
 // =============================================
-//  ENDPOINT RINOMINA - NUOVO
+//  ENDPOINT RINOMINA
 // =============================================
 app.post("/api/rename", requireLogin, (req, res) => {
   const { oldPath, newName } = req.body;
@@ -532,6 +532,103 @@ app.get("/download/*", requireLogin, (req, res) => {
   } else {
     res.status(404).send("File not found");
   }
+});
+
+// =============================================
+//  ENDPOINT DOWNLOAD ZIP CARTELLA/FILE
+// =============================================
+app.get("/api/download-zip/*", requireLogin, (req, res) => {
+  const baseFolder = path.join(__dirname, "../frontend/uploads");
+  const itemPath = path.normalize(path.join(baseFolder, req.params[0]));
+
+  // Sicurezza: verifica che il percorso sia dentro uploads
+  if (!itemPath.startsWith(baseFolder)) {
+    return res.status(403).json({ error: "Accesso non consentito" });
+  }
+
+  if (!fs.existsSync(itemPath)) {
+    return res.status(404).json({ error: "File o cartella non trovato" });
+  }
+
+  const stats = fs.statSync(itemPath);
+  const itemName = path.basename(itemPath);
+  const zipName = itemName + ".zip";
+
+  res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
+  res.setHeader("Content-Type", "application/zip");
+
+  const archive = archiver("zip", { zlib: { level: 9 } });
+
+  archive.on("error", (err) => {
+    console.error("Errore archivio:", err);
+    res.status(500).json({ error: "Errore nella creazione dello zip" });
+  });
+
+  archive.pipe(res);
+
+  if (stats.isDirectory()) {
+    // Se è una cartella, aggiungi tutto il contenuto
+    archive.directory(itemPath, itemName);
+  } else {
+    // Se è un file, aggiungi solo quel file
+    archive.file(itemPath, { name: itemName });
+  }
+
+  archive.finalize();
+
+  console.log(`📦 Creato zip: ${zipName}`);
+});
+
+// =============================================
+//  ENDPOINT DOWNLOAD ZIP VISUALIZZAZIONE CORRENTE
+// =============================================
+app.post("/api/download-current-view", requireLogin, (req, res) => {
+  const baseFolder = path.join(__dirname, "../frontend/uploads");
+  const folderPath = req.body.folder ? path.join(baseFolder, req.body.folder) : baseFolder;
+
+  // Sicurezza
+  if (!folderPath.startsWith(baseFolder)) {
+    return res.status(403).json({ error: "Accesso non consentito" });
+  }
+
+  if (!fs.existsSync(folderPath)) {
+    return res.status(404).json({ error: "Cartella non trovata" });
+  }
+
+  const folderName = path.basename(folderPath) || "files";
+  const zipName = folderName + ".zip";
+
+  res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
+  res.setHeader("Content-Type", "application/zip");
+
+  const archive = archiver("zip", { zlib: { level: 9 } });
+
+  archive.on("error", (err) => {
+    console.error("Errore archivio:", err);
+    res.status(500).json({ error: "Errore nella creazione dello zip" });
+  });
+
+  archive.pipe(res);
+
+  try {
+    const items = fs.readdirSync(folderPath, { withFileTypes: true });
+
+    items.forEach((item) => {
+      const itemFullPath = path.join(folderPath, item.name);
+      if (item.isDirectory()) {
+        archive.directory(itemFullPath, item.name);
+      } else {
+        archive.file(itemFullPath, { name: item.name });
+      }
+    });
+  } catch (err) {
+    console.error("Errore lettura cartella:", err);
+    return res.status(500).json({ error: "Errore lettura cartella" });
+  }
+
+  archive.finalize();
+
+  console.log(`📦 Creato zip visualizzazione: ${zipName}`);
 });
 
 app.delete("/api/delete/*", requireLogin, (req, res) => {
@@ -843,23 +940,6 @@ app.post("/api/create-folder", requireLogin, (req, res) => {
   }
 });
 
-app.get("/download-folder", requireLogin, (req, res) => {
-  const folderPath = path.join(
-    __dirname,
-    "../frontend/uploads",
-    req.query.folder || "",
-  );
-  const zipName = path.basename(folderPath) + ".zip";
-
-  res.setHeader("Content-Disposition", `attachment; filename=${zipName}`);
-  res.setHeader("Content-Type", "application/zip");
-
-  const archive = archiver("zip", { zlib: { level: 9 } });
-  archive.pipe(res);
-  archive.directory(folderPath, false);
-  archive.finalize();
-});
-
 app.get("/api/tree", requireLogin, (req, res) => {
   const baseFolder = path.join(__dirname, "../frontend/uploads");
   const startFolder = req.query.folder
@@ -937,5 +1017,7 @@ server.listen(PORT, "0.0.0.0", async () => {
   console.log(`📍 Localhost: http://localhost:${PORT}`);
   console.log("🔌 Socket.IO abilitato per sincronizzazione real-time");
   console.log("✏️  Rinomina file/cartelle: /api/rename");
+  console.log("📦 Download zip cartella/file: /api/download-zip/*");
+  console.log("📦 Download zip visualizzazione corrente: /api/download-current-view");
   console.log("👤 Admin credentials: Admin / Admin123!");
 });

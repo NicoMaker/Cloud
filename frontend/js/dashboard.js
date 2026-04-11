@@ -215,6 +215,65 @@ async function confirmRename() {
 }
 
 // =============================================
+//  FUNZIONE DOWNLOAD ZIP CARTELLA/FILE
+// =============================================
+
+async function downloadItemAsZip(filePath, fileName) {
+  try {
+    const encodedPath = encodeURIComponent(filePath);
+    const zipUrl = `/api/download-zip/${encodedPath}`;
+    
+    const link = document.createElement("a");
+    link.href = zipUrl;
+    link.click();
+    
+    showToast(`Download di "${fileName}.zip" avviato`, "success");
+  } catch (err) {
+    console.error("Errore download:", err);
+    showToast("Errore durante il download", "error");
+  }
+}
+
+// =============================================
+//  FUNZIONE DOWNLOAD ZIP VISUALIZZAZIONE CORRENTE
+// =============================================
+
+async function downloadCurrentView() {
+  try {
+    const folderName = currentPath ? currentPath.split("/").pop() : "files";
+    
+    showToast(`Preparazione download "${folderName}.zip"...`, "info");
+    
+    const response = await fetch("/api/download-current-view", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: currentPath }),
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Errore HTTP ${response.status}`);
+    }
+
+    // Ottieni il blob dallo stream della risposta
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${folderName}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    showToast(`Download di "${folderName}.zip" completato`, "success");
+  } catch (err) {
+    console.error("Errore download visualizzazione:", err);
+    showToast("Errore durante il download della visualizzazione", "error");
+  }
+}
+
+// =============================================
 //  SELEZIONE FILE
 // =============================================
 
@@ -500,6 +559,14 @@ function displayFiles(files, folderPath) {
     const size = file.type === "folder" ? "-" : formatFileSize(file.size);
     const modified = new Date(file.modified).toLocaleDateString("it-IT");
 
+    // Pulsante download zip per cartelle/file
+    const downloadZipBtn = `
+      <button onclick="downloadItemAsZip('${file.path}', '${file.name}')" 
+              class="btn btn-outline-info btn-sm" 
+              title="Scarica come ZIP">
+        <i class="fas fa-download"></i>
+      </button>`;
+
     // Pulsante rinomina (penna) - visibile a tutti gli utenti loggati
     const renameBtn = `
       <button onclick="openRenameModal('${file.path}', '${file.type}')" 
@@ -508,10 +575,10 @@ function displayFiles(files, folderPath) {
         <i class="fas fa-pen"></i>
       </button>`;
 
-    // Pulsante download solo per file
+    // Pulsante download solo per file singoli
     const downloadBtn = file.type === "file"
-      ? `<a href="/download/${file.path}" class="btn btn-outline-primary btn-sm" title="Scarica">
-           <i class="fas fa-download"></i>
+      ? `<a href="/download/${file.path}" class="btn btn-outline-primary btn-sm" title="Scarica file singolo">
+           <i class="fas fa-file-download"></i>
          </a>`
       : "";
 
@@ -539,6 +606,7 @@ function displayFiles(files, folderPath) {
       <td>
         <div class="file-actions">
           ${downloadBtn}
+          ${downloadZipBtn}
           ${renameBtn}
           ${deleteBtn}
         </div>
