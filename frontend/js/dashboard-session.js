@@ -16,7 +16,7 @@ async function checkSession() {
     if (!data.valid) {
       showToast("Sessione scaduta. Reindirizzamento al login...", "warning");
       setTimeout(() => {
-        window.location.href = "/login.html?error=session_expired";
+        window.location.replace("/login.html?error=session_expired");
       }, 2000);
       return false;
     }
@@ -31,7 +31,7 @@ function initializeApp() {
   fetch("/session-info")
     .then((res) => {
       if (res.status === 401) {
-        window.location.href = "/login.html?error=session_expired";
+        window.location.replace("/login.html?error=session_expired");
         return;
       }
       return res.json();
@@ -57,7 +57,7 @@ function initializeApp() {
       console.error("Errore nel caricamento info sessione:", err);
       showToast("Errore di autenticazione. Reindirizzamento al login...", "error");
       setTimeout(() => {
-        window.location.href = "/login.html?error=auth_error";
+        window.location.replace("/login.html?error=auth_error");
       }, 2000);
     });
 
@@ -91,9 +91,15 @@ function setupSocketConnection() {
     } else if (reason === "account_updated") {
       message = "Il tuo account è stato modificato. Esegui di nuovo l'accesso.";
     }
+
+    // Blocca subito qualsiasi reconnect del socket
+    window.socket.off();
+    window.socket.disconnect();
+
+    // location.replace invece di href: non torna indietro col tasto back
     showToast(message, "warning");
     setTimeout(() => {
-      window.location.href = "/login.html?error=account_changed";
+      window.location.replace("/login.html?error=account_changed");
     }, 1200);
   });
 }

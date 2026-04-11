@@ -143,16 +143,14 @@ function setupUserRoutes(app, db, forceLogoutUserEverywhere, requireAdmin) {
           } else {
             console.log(`✅ Utente aggiornato: ${username} (${role})`);
 
-            // Se l'admin sta modificando sé stesso, NON fare logout automatico
-            // Aggiorna solo la sessione corrente con i nuovi dati
             if (targetId === requestingAdminId) {
-              req.session.user.username = username;
-              req.session.user.role = role;
-              req.session.save(() => {
-                res.redirect("/admin.html?success=user_updated");
+              // Sta modificando sé stesso → distruggi la sessione e manda al login
+              // Le credenziali sono cambiate, deve riautenticarsi
+              req.session.destroy(() => {
+                res.redirect("/login.html?error=credentials_changed");
               });
             } else {
-              // Per altri utenti, forza il logout normalmente
+              // Sta modificando un altro utente → logout forzato per lui
               forceLogoutUserEverywhere(targetId, "account_updated", () => {
                 res.redirect("/admin.html?success=user_updated");
               });

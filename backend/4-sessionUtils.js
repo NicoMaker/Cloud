@@ -41,9 +41,18 @@ function destroyUserSessionsByUserId(app, userId, callback) {
 }
 
 function forceLogoutUserEverywhere(io, app, userId, reason = "account_changed", callback) {
-  io.to(getUserRoom(userId)).emit("forceLogout", { reason });
-  io.in(getUserRoom(userId)).disconnectSockets(true);
-  destroyUserSessionsByUserId(app, userId, callback || (() => {}));
+  // 1. Prima distruggi le sessioni sul server
+  destroyUserSessionsByUserId(app, userId, () => {
+    // 2. Poi emetti forceLogout — il browser riceve l'evento e fa il redirect al login
+    io.to(getUserRoom(userId)).emit("forceLogout", { reason });
+
+    // 3. Dopo 2 secondi disconnetti i socket (il browser ha già fatto il redirect)
+    setTimeout(() => {
+      io.in(getUserRoom(userId)).disconnectSockets(true);
+    }, 2000);
+
+    if (callback) callback();
+  });
 }
 
 module.exports = {
