@@ -27,6 +27,103 @@ body {
   border-radius: 15px 15px 0 0 !important;
 }
 
+/* Bottoni - Migliorata Visibilità */
+.btn {
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+}
+
+.btn-sm {
+  border-radius: 20px;
+  padding: 0.25rem 0.75rem;
+}
+
+/* Bottoni Outline */
+.btn-outline-primary {
+  color: #0d6efd;
+  border: 2px solid #0d6efd;
+  background-color: transparent;
+}
+
+.btn-outline-primary:hover {
+  color: #fff;
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-outline-secondary {
+  color: #6c757d;
+  border: 2px solid #6c757d;
+  background-color: transparent;
+}
+
+.btn-outline-secondary:hover {
+  color: #fff;
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.btn-outline-info {
+  color: #0dcaf0;
+  border: 2px solid #0dcaf0;
+  background-color: transparent;
+}
+
+.btn-outline-info:hover {
+  color: #000;
+  background-color: #0dcaf0;
+  border-color: #0dcaf0;
+}
+
+.btn-outline-danger {
+  color: #dc3545;
+  border: 2px solid #dc3545;
+  background-color: transparent;
+}
+
+.btn-outline-danger:hover {
+  color: #fff;
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.btn-outline-success {
+  color: #198754;
+  border: 2px solid #198754;
+  background-color: transparent;
+}
+
+.btn-outline-success:hover {
+  color: #fff;
+  background-color: #198754;
+  border-color: #198754;
+}
+
+.btn-outline-warning {
+  color: #664d03;
+  border: 2px solid #ffc107;
+  background-color: transparent;
+}
+
+.btn-outline-warning:hover {
+  color: #fff;
+  background-color: #ffc107;
+  border-color: #ffc107;
+}
+
+.btn-outline-light {
+  color: #fff;
+  border: 2px solid #fff;
+  background-color: transparent;
+}
+
+.btn-outline-light:hover {
+  color: #667eea;
+  background-color: #fff;
+  border-color: #fff;
+}
+
 /* Contenitore Browser File */
 .file-browser-container {
   max-height: 70vh;
@@ -123,11 +220,6 @@ body {
 
 .file-row:hover .file-actions {
   opacity: 1;
-}
-
-.btn-sm {
-  border-radius: 20px;
-  padding: 0.25rem 0.75rem;
 }
 
 /* Sezioni Upload */

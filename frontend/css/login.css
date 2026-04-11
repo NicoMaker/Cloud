@@ -30,11 +30,13 @@ body {
   border: 2px solid #e9ecef;
   padding: 12px 15px;
   transition: all 0.3s ease;
+  font-weight: 500;
 }
 
 .form-control:focus {
   border-color: #667eea;
   box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  outline: none;
 }
 
 .btn-login {
@@ -43,25 +45,73 @@ body {
   border-radius: 10px;
   padding: 12px;
   font-weight: 600;
-  transition: transform 0.2s ease;
+  color: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
 }
 
 .btn-login:hover {
   transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.btn-login:active {
+  transform: translateY(0);
 }
 
 .alert {
   border-radius: 10px;
   border: none;
+  font-weight: 500;
 }
 
 .password-requirements {
   font-size: 0.875rem;
   color: #6c757d;
   margin-top: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.75rem;
 }
 
 .password-requirements ul {
   margin: 0;
   padding-left: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.password-requirements li {
+  margin-bottom: 0.25rem;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+/* Input placeholder */
+.form-control::placeholder {
+  color: #adb5bd;
+  font-weight: 400;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .login-container {
+    margin: 1rem;
+  }
+
+  .login-header {
+    padding: 1.5rem;
+  }
+
+  .login-body {
+    padding: 1.5rem;
+  }
+
+  .btn-login {
+    padding: 10px;
+    font-size: 0.95rem;
+  }
 }
