@@ -12,6 +12,11 @@ const io = window.io;
 const bootstrap = window.bootstrap;
 let mainFolderNames = [];
 
+// Helper browser-safe per ottenere il nome base di un path
+function pathBasename(p) {
+  return (p || "").replace(/\\/g, "/").split("/").filter(Boolean).pop() || "";
+}
+
 // Inizializza l'applicazione
 document.addEventListener("DOMContentLoaded", () => {
   initializeApp();
@@ -150,7 +155,7 @@ function setupSocketConnection() {
 function openCopyModal(sourcePath) {
   copyMoveAction = "copy";
   copyMoveSourcePath = sourcePath;
-  
+
   document.getElementById("copyMoveSourcePath").value = sourcePath;
   document.getElementById("copyMoveAction").value = "copy";
   document.getElementById("copyMoveTitle").textContent = "Copia";
@@ -169,7 +174,7 @@ function openCopyModal(sourcePath) {
 function openMoveModal(sourcePath) {
   copyMoveAction = "move";
   copyMoveSourcePath = sourcePath;
-  
+
   document.getElementById("copyMoveSourcePath").value = sourcePath;
   document.getElementById("copyMoveAction").value = "move";
   document.getElementById("copyMoveTitle").textContent = "Sposta";
@@ -200,7 +205,8 @@ async function confirmCopyMove() {
         action,
         sourcePath,
         destFolder: destFolder || "",
-        newName: newName || path.basename(sourcePath),
+        // usa pathBasename invece di path.basename (non disponibile nel browser)
+        newName: newName || pathBasename(sourcePath),
       }),
       credentials: "same-origin",
     });
@@ -298,11 +304,11 @@ async function downloadItemAsZip(filePath, fileName) {
   try {
     const encodedPath = encodeURIComponent(filePath);
     const zipUrl = `/api/download-zip/${encodedPath}`;
-    
+
     const link = document.createElement("a");
     link.href = zipUrl;
     link.click();
-    
+
     showToast(`Download di "${fileName}.zip" avviato`, "success");
   } catch (err) {
     console.error("Errore download:", err);
@@ -313,9 +319,9 @@ async function downloadItemAsZip(filePath, fileName) {
 async function downloadCurrentView() {
   try {
     const folderName = currentPath ? currentPath.split("/").pop() : "files";
-    
+
     showToast(`Preparazione download "${folderName}.zip"...`, "info");
-    
+
     const response = await fetch("/api/download-current-view", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -336,7 +342,7 @@ async function downloadCurrentView() {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-    
+
     showToast(`Download di "${folderName}.zip" completato`, "success");
   } catch (err) {
     console.error("Errore download visualizzazione:", err);

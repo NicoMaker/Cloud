@@ -178,6 +178,21 @@ function forceLogoutUserEverywhere(userId, reason = "account_changed", callback)
   destroyUserSessionsByUserId(userId, callback || (() => {}));
 }
 
+// =============================================
+//  FUNZIONE HELPER: copia ricorsiva cartella
+// =============================================
+function copyRecursive(src, dest) {
+  const stats = fs.statSync(src);
+  if (stats.isDirectory()) {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const child of fs.readdirSync(src)) {
+      copyRecursive(path.join(src, child), path.join(dest, child));
+    }
+  } else {
+    fs.copyFileSync(src, dest);
+  }
+}
+
 // Middleware
 app.use(express.static(path.join(__dirname, "../frontend")));
 app.use(express.urlencoded({ extended: true }));
@@ -341,22 +356,17 @@ app.get("/api/files", requireLogin, (req, res) => {
 app.post("/api/rename", requireLogin, (req, res) => {
   const { oldPath, newName } = req.body;
 
-  // Validazione input
   if (!oldPath || !newName) {
     return res.status(400).json({ success: false, message: "Parametri mancanti" });
   }
 
-  // Sicurezza: nessun path traversal nel nuovo nome
   if (newName.includes("/") || newName.includes("\\") || newName.includes("..")) {
     return res.status(400).json({ success: false, message: "Nome non valido" });
   }
 
   const baseFolder = path.join(__dirname, "../frontend/uploads");
-
-  // Percorso sorgente
   const oldFullPath = path.normalize(path.join(baseFolder, oldPath));
 
-  // Verifica che il percorso sia dentro la cartella uploads
   if (!oldFullPath.startsWith(baseFolder)) {
     return res.status(403).json({ success: false, message: "Percorso non consentito" });
   }
@@ -365,16 +375,13 @@ app.post("/api/rename", requireLogin, (req, res) => {
     return res.status(404).json({ success: false, message: "File o cartella non trovato" });
   }
 
-  // Percorso destinazione: stessa cartella padre, solo cambio nome
   const parentDir = path.dirname(oldFullPath);
   const newFullPath = path.join(parentDir, newName);
 
-  // Verifica che anche la destinazione sia dentro uploads
   if (!newFullPath.startsWith(baseFolder)) {
     return res.status(403).json({ success: false, message: "Percorso destinazione non consentito" });
   }
 
-  // Verifica che non esista già qualcosa con quel nome
   if (fs.existsSync(newFullPath)) {
     return res.status(409).json({ success: false, message: "Esiste già un file o cartella con questo nome" });
   }
@@ -382,7 +389,6 @@ app.post("/api/rename", requireLogin, (req, res) => {
   try {
     fs.renameSync(oldFullPath, newFullPath);
 
-    // Aggiorna i record nel database se è un file
     const oldRelPath = path.relative(baseFolder, oldFullPath).replace(/\\/g, "/");
     const newRelPath = path.relative(baseFolder, newFullPath).replace(/\\/g, "/");
 
@@ -398,6 +404,97 @@ app.post("/api/rename", requireLogin, (req, res) => {
   } catch (error) {
     console.error("❌ Errore rinomina:", error);
     res.status(500).json({ success: false, message: "Errore durante la rinomina: " + error.message });
+  }
+});
+
+// =============================================
+//  ENDPOINT COPIA / SPOSTA
+// =============================================
+app.post("/api/copy-move", requireLogin, (req, res) => {
+  const { action, sourcePath, destFolder, newName } = req.body;
+
+  // Validazione parametri
+  if (!action || !sourcePath) {
+    return res.status(400).json({ success: false, message: "Parametri mancanti" });
+  }
+
+  if (!["copy", "move"].includes(action)) {
+    return res.status(400).json({ success: false, message: "Azione non valida (usare 'copy' o 'move')" });
+  }
+
+  // Sicurezza: nessun path traversal
+  const safeName = (newName || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  if (safeName.includes("..")) {
+    return res.status(400).json({ success: false, message: "Nome destinazione non valido" });
+  }
+
+  const baseFolder = path.join(__dirname, "../frontend/uploads");
+
+  // Percorso sorgente
+  const srcFullPath = path.normalize(path.join(baseFolder, sourcePath));
+  if (!srcFullPath.startsWith(baseFolder)) {
+    return res.status(403).json({ success: false, message: "Percorso sorgente non consentito" });
+  }
+
+  if (!fs.existsSync(srcFullPath)) {
+    return res.status(404).json({ success: false, message: "File o cartella sorgente non trovato" });
+  }
+
+  // Nome finale: usa newName se fornito, altrimenti il nome originale
+  const originalName = path.basename(srcFullPath);
+  const finalName = safeName || originalName;
+
+  // Percorso destinazione
+  const destFolderClean = (destFolder || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  const destFullPath = path.normalize(
+    path.join(baseFolder, destFolderClean ? destFolderClean + "/" + finalName : finalName)
+  );
+
+  if (!destFullPath.startsWith(baseFolder)) {
+    return res.status(403).json({ success: false, message: "Percorso destinazione non consentito" });
+  }
+
+  // Impossibile copiare/spostare dentro sé stesso
+  if (destFullPath === srcFullPath || destFullPath.startsWith(srcFullPath + path.sep)) {
+    return res.status(400).json({ success: false, message: "Non puoi copiare/spostare una cartella dentro sé stessa" });
+  }
+
+  if (fs.existsSync(destFullPath)) {
+    return res.status(409).json({ success: false, message: "Esiste già un elemento con questo nome nella destinazione" });
+  }
+
+  // Crea la directory di destinazione se non esiste
+  const destDir = path.dirname(destFullPath);
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir, { recursive: true });
+  }
+
+  try {
+    if (action === "copy") {
+      copyRecursive(srcFullPath, destFullPath);
+      console.log(`📋 Copiato: "${sourcePath}" → "${path.relative(baseFolder, destFullPath)}"`);
+    } else {
+      // move
+      fs.renameSync(srcFullPath, destFullPath);
+
+      // Aggiorna i record nel database
+      const oldRelPath = path.relative(baseFolder, srcFullPath).replace(/\\/g, "/");
+      const newRelPath = path.relative(baseFolder, destFullPath).replace(/\\/g, "/");
+      db.run(
+        "UPDATE file_uploads SET filepath = ?, filename = ? WHERE filepath = ?",
+        [newRelPath, finalName, oldRelPath],
+      );
+      console.log(`🚚 Spostato: "${sourcePath}" → "${newRelPath}"`);
+    }
+
+    io.emit("filesChanged", { action, timestamp: Date.now() });
+    res.json({
+      success: true,
+      destPath: path.relative(baseFolder, destFullPath).replace(/\\/g, "/"),
+    });
+  } catch (error) {
+    console.error(`❌ Errore ${action}:`, error);
+    res.status(500).json({ success: false, message: `Errore durante ${action === "copy" ? "la copia" : "lo spostamento"}: ${error.message}` });
   }
 });
 
@@ -541,7 +638,6 @@ app.get("/api/download-zip/*", requireLogin, (req, res) => {
   const baseFolder = path.join(__dirname, "../frontend/uploads");
   const itemPath = path.normalize(path.join(baseFolder, req.params[0]));
 
-  // Sicurezza: verifica che il percorso sia dentro uploads
   if (!itemPath.startsWith(baseFolder)) {
     return res.status(403).json({ error: "Accesso non consentito" });
   }
@@ -567,15 +663,12 @@ app.get("/api/download-zip/*", requireLogin, (req, res) => {
   archive.pipe(res);
 
   if (stats.isDirectory()) {
-    // Se è una cartella, aggiungi tutto il contenuto
     archive.directory(itemPath, itemName);
   } else {
-    // Se è un file, aggiungi solo quel file
     archive.file(itemPath, { name: itemName });
   }
 
   archive.finalize();
-
   console.log(`📦 Creato zip: ${zipName}`);
 });
 
@@ -586,7 +679,6 @@ app.post("/api/download-current-view", requireLogin, (req, res) => {
   const baseFolder = path.join(__dirname, "../frontend/uploads");
   const folderPath = req.body.folder ? path.join(baseFolder, req.body.folder) : baseFolder;
 
-  // Sicurezza
   if (!folderPath.startsWith(baseFolder)) {
     return res.status(403).json({ error: "Accesso non consentito" });
   }
@@ -612,7 +704,6 @@ app.post("/api/download-current-view", requireLogin, (req, res) => {
 
   try {
     const items = fs.readdirSync(folderPath, { withFileTypes: true });
-
     items.forEach((item) => {
       const itemFullPath = path.join(folderPath, item.name);
       if (item.isDirectory()) {
@@ -627,7 +718,6 @@ app.post("/api/download-current-view", requireLogin, (req, res) => {
   }
 
   archive.finalize();
-
   console.log(`📦 Creato zip visualizzazione: ${zipName}`);
 });
 
@@ -1017,6 +1107,7 @@ server.listen(PORT, "0.0.0.0", async () => {
   console.log(`📍 Localhost: http://localhost:${PORT}`);
   console.log("🔌 Socket.IO abilitato per sincronizzazione real-time");
   console.log("✏️  Rinomina file/cartelle: /api/rename");
+  console.log("📋 Copia/Sposta file/cartelle: /api/copy-move");
   console.log("📦 Download zip cartella/file: /api/download-zip/*");
   console.log("📦 Download zip visualizzazione corrente: /api/download-current-view");
   console.log("👤 Admin credentials: Admin / Admin123!");
