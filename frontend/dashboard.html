@@ -4,14 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestore File Avanzato</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      rel="stylesheet"
-    />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link href="css/dashboard.css" rel="stylesheet" />
   </head>
 
@@ -30,30 +24,13 @@
             <span class="navbar-text me-3" id="userInfo">
               <i class="fas fa-user me-1"></i>Caricamento...
             </span>
-            <a
-              href="/admin.html"
-              class="btn btn-navbar btn-sm me-2"
-              id="adminBtn"
-              style="display: none"
-              title="Accedi al pannello amministrativo"
-            >
+            <a href="/admin.html" class="btn btn-navbar btn-sm me-2" id="adminBtn" style="display:none" title="Accedi al pannello amministrativo">
               <i class="fas fa-users-cog me-1"></i><span class="btn-text">Pannello Admin</span>
             </a>
-            <button
-              class="btn btn-navbar btn-sm me-2"
-              id="downloadViewBtn"
-              onclick="downloadCurrentView()"
-              title="Scarica la visualizzazione attuale come ZIP"
-            >
+            <button class="btn btn-navbar btn-sm me-2" onclick="downloadCurrentView()" title="Scarica la visualizzazione attuale come ZIP">
               <i class="fas fa-download me-1"></i><span class="btn-text">Scarica ZIP</span>
             </button>
-            <button
-              class="btn btn-navbar btn-sm me-2"
-              id="deleteAllBtn"
-              style="display: none"
-              onclick="deleteAllFiles()"
-              title="Elimina tutti i file e le cartelle"
-            >
+            <button class="btn btn-navbar btn-sm me-2" id="deleteAllBtn" style="display:none" onclick="deleteAllFiles()" title="Elimina tutti i file e le cartelle">
               <i class="fas fa-trash-alt me-1"></i><span class="btn-text">Elimina Tutto</span>
             </button>
             <a href="/logout" class="btn btn-navbar btn-sm" title="Esci dall'applicazione">
@@ -68,121 +45,60 @@
       <div class="row">
         <!-- Upload Panel -->
         <div class="col-lg-4 mb-4">
-            <div class="card upload-card">
+          <div class="card upload-card">
             <div class="card-header">
-              <h5 class="mb-0">
-                <i class="fas fa-plus me-2"></i>Crea Cartella
-              </h5>
+              <h5 class="mb-0"><i class="fas fa-plus me-2"></i>Crea Cartella</h5>
             </div>
             <div class="card-body">
               <div class="input-group mb-3">
-                <input
-                  type="text"
-                  class="form-control"
-                  id="newFolderName"
-                  placeholder="Nome cartella..."
-                />
-                <button
-                  class="btn btn-success"
-                  type="button"
-                  onclick="createNewFolder()"
-                  title="Crea una nuova cartella"
-                >
+                <input type="text" class="form-control" id="newFolderName" placeholder="Nome cartella..." />
+                <button class="btn btn-success" type="button" onclick="createNewFolder()">
                   <i class="fas fa-folder-plus me-1"></i>Crea
                 </button>
               </div>
             </div>
           </div>
-          
+
           <div class="card upload-card">
             <div class="card-header">
-              <h5 class="mb-0">
-                <i class="fas fa-upload me-2"></i>Caricamento File
-              </h5>
+              <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Caricamento File</h5>
             </div>
             <div class="card-body">
               <form id="uploadForm" enctype="multipart/form-data">
-                <!-- Carica File -->
                 <div class="upload-section mb-4">
                   <h6><i class="fas fa-file me-2"></i>Carica File</h6>
                   <div class="input-group mb-3">
-                    <input
-                      type="file"
-                      class="form-control"
-                      id="fileInput"
-                      name="files"
-                      multiple
-                      style="display: none"
-                    />
-                    <button
-                      class="btn btn-primary"
-                      type="button"
-                      onclick="selectFiles()"
-                      title="Seleziona file da caricare"
-                    >
+                    <input type="file" class="form-control" id="fileInput" name="files" multiple style="display:none" />
+                    <button class="btn btn-primary" type="button" onclick="selectFiles()">
                       <i class="fas fa-file me-1"></i>Sfoglia File
                     </button>
                   </div>
                 </div>
 
-                <!-- Carica Cartella -->
                 <div class="upload-section mb-4">
                   <h6><i class="fas fa-folder me-2"></i>Carica Cartella</h6>
                   <div class="input-group mb-3">
-                    <input
-                      type="file"
-                      id="folderInput"
-                      name="files"
-                      webkitdirectory
-                      multiple
-                      style="display: none"
-                    />
-                    <button
-                      class="btn btn-secondary"
-                      type="button"
-                      onclick="selectFolder()"
-                      title="Seleziona una cartella da caricare"
-                    >
+                    <input type="file" id="folderInput" name="files" webkitdirectory multiple style="display:none" />
+                    <button class="btn btn-secondary" type="button" onclick="selectFolder()">
                       <i class="fas fa-folder me-1"></i>Sfoglia Cartella
                     </button>
                   </div>
                 </div>
 
-                <!-- File selezionati -->
-                <div
-                  id="selectedFiles"
-                  class="selected-files mb-3"
-                  style="display: none"
-                >
+                <div id="selectedFiles" class="selected-files mb-3" style="display:none">
                   <h6><i class="fas fa-list me-2"></i>File Selezionati</h6>
                   <div id="filesList"></div>
                   <div class="upload-actions mt-3">
-                    <button
-                      type="button"
-                      class="btn btn-success"
-                      onclick="startUpload()"
-                      title="Avvia il caricamento dei file selezionati"
-                    >
+                    <button type="button" class="btn btn-success" onclick="startUpload()">
                       <i class="fas fa-upload me-1"></i>Carica File
                     </button>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      onclick="clearSelection()"
-                      title="Cancella la selezione di file"
-                    >
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearSelection()">
                       <i class="fas fa-times me-1"></i>Cancella
                     </button>
                   </div>
                 </div>
 
-                <!-- Progresso -->
-                <div
-                  id="uploadProgress"
-                  class="upload-progress"
-                  style="display: none"
-                >
-                </div>
+                <div id="uploadProgress" class="upload-progress" style="display:none"></div>
               </form>
             </div>
           </div>
@@ -191,28 +107,18 @@
         <!-- File Browser -->
         <div class="col-lg-8">
           <div class="card browser-card">
-            <div
-              class="card-header d-flex justify-content-between align-items-center"
-            >
+            <div class="card-header d-flex justify-content-between align-items-center">
               <div>
-                <h5 class="mb-1">
-                  <i class="fas fa-folder-open me-2"></i>Esplora File
-                </h5>
+                <h5 class="mb-1"><i class="fas fa-folder-open me-2"></i>Esplora File</h5>
                 <nav aria-label="breadcrumb">
                   <ol class="breadcrumb mb-0" id="breadcrumb">
                     <li class="breadcrumb-item">
-                      <a href="#" onclick="loadFiles('')">
-                        <i class="fas fa-home me-1"></i>Home
-                      </a>
+                      <a href="#" onclick="loadFiles('')"><i class="fas fa-home me-1"></i>Home</a>
                     </li>
                   </ol>
                 </nav>
               </div>
-              <button
-                class="btn btn-light btn-sm"
-                onclick="refreshFiles()"
-                title="Aggiorna l'elenco dei file"
-              >
+              <button class="btn btn-light btn-sm" onclick="refreshFiles()">
                 <i class="fas fa-sync-alt me-1"></i>Aggiorna
               </button>
             </div>
@@ -247,9 +153,7 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title">
-              <i class="fas fa-exclamation-triangle me-2"></i>Conferma Eliminazione Totale
-            </h5>
+            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Conferma Eliminazione Totale</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
@@ -280,9 +184,7 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">
-              <i class="fas fa-pen me-2"></i>Rinomina
-            </h5>
+            <h5 class="modal-title"><i class="fas fa-pen me-2"></i>Rinomina</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
@@ -290,13 +192,7 @@
             <input type="hidden" id="renameType" />
             <div class="mb-3">
               <label for="renameNewName" class="form-label">Nuovo nome</label>
-              <input
-                type="text"
-                class="form-control"
-                id="renameNewName"
-                placeholder="Inserisci il nuovo nome..."
-                autofocus
-              />
+              <input type="text" class="form-control" id="renameNewName" placeholder="Inserisci il nuovo nome..." autofocus />
               <div class="form-text text-muted">
                 <i class="fas fa-info-circle me-1"></i>Non usare <code>/</code> o <code>..</code> nel nome.
               </div>
@@ -317,9 +213,7 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">
-              <i class="fas fa-copy me-2"></i><span id="copyMoveTitle">Copia</span>
-            </h5>
+            <h5 class="modal-title"><i class="fas fa-copy me-2"></i><span id="copyMoveTitle">Copia</span></h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
@@ -327,32 +221,18 @@
             <input type="hidden" id="copyMoveAction" />
             <div class="mb-3">
               <label for="copyMoveDestFolder" class="form-label">Seleziona Cartella Destinazione</label>
-              <input
-                type="text"
-                class="form-control"
-                id="copyMoveDestFolder"
-                placeholder="Percorso destinazione (vuoto = root)"
-              />
-              <div class="form-text text-muted">
-                <i class="fas fa-info-circle me-1"></i>Lascia vuoto per la cartella root.
-              </div>
+              <input type="text" class="form-control" id="copyMoveDestFolder" placeholder="Percorso destinazione (vuoto = root)" />
+              <div class="form-text text-muted"><i class="fas fa-info-circle me-1"></i>Lascia vuoto per la cartella root.</div>
             </div>
             <div class="mb-3">
               <label for="copyMoveName" class="form-label">Nome Destinazione</label>
-              <input
-                type="text"
-                class="form-control"
-                id="copyMoveName"
-                placeholder="Nome file/cartella..."
-              />
-              <div class="form-text text-muted">
-                <i class="fas fa-info-circle me-1"></i>Lascia vuoto per mantenere il nome originale.
-              </div>
+              <input type="text" class="form-control" id="copyMoveName" placeholder="Nome file/cartella..." />
+              <div class="form-text text-muted"><i class="fas fa-info-circle me-1"></i>Lascia vuoto per mantenere il nome originale.</div>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-            <button type="button" class="btn btn-primary" id="confirmCopyMoveBtn" onclick="confirmCopyMove()">
+            <button type="button" class="btn btn-primary" onclick="confirmCopyMove()">
               <i class="fas fa-check me-1"></i><span id="confirmCopyMoveText">Copia</span>
             </button>
           </div>
@@ -363,9 +243,14 @@
     <!-- Toast Notifiche -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
 
-    <!-- Script -->
+    <!-- Script: carica i file nell'ordine corretto -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="js/dashboard-globals.js"></script>
+    <script src="js/dashboard-ui.js"></script>
+    <script src="js/dashboard-files.js"></script>
+    <script src="js/dashboard-upload.js"></script>
+    <script src="js/dashboard-operations.js"></script>
+    <script src="js/dashboard-session.js"></script>
   </body>
 </html>

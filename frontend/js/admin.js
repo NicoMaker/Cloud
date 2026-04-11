@@ -1,4 +1,7 @@
-// Initialize admin panel
+// =============================================
+//  PANNELLO ADMIN
+// =============================================
+
 document.addEventListener("DOMContentLoaded", () => {
   loadUsers();
   checkUrlParams();
@@ -11,37 +14,35 @@ function setupPasswordValidation() {
 
   if (passwordInput) {
     passwordInput.addEventListener("input", (e) =>
-      validatePassword(e.target.value, "passwordStrength", "createUserBtn"),
+      validatePasswordStrength(e.target.value, "passwordStrength", "createUserBtn"),
     );
   }
 
   if (editPasswordInput) {
     editPasswordInput.addEventListener("input", (e) =>
-      validatePassword(e.target.value, "editPasswordStrength"),
+      validatePasswordStrength(e.target.value, "editPasswordStrength"),
     );
   }
 }
 
-function validatePassword(password, strengthElementId, buttonId = null) {
+function validatePasswordStrength(password, strengthElementId, buttonId = null) {
   const strengthElement = document.getElementById(strengthElementId);
   const button = buttonId ? document.getElementById(buttonId) : null;
 
   const requirements = {
-    length: password.length >= 8,
-    upper: /[A-Z]/.test(password),
-    lower: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
+    length:  password.length >= 8,
+    upper:   /[A-Z]/.test(password),
+    lower:   /[a-z]/.test(password),
+    number:  /[0-9]/.test(password),
     special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
   };
 
-  // Update requirement indicators
   if (strengthElementId === "passwordStrength") {
     updateRequirementIndicators(requirements);
   }
 
   const validCount = Object.values(requirements).filter(Boolean).length;
 
-  // Update strength bar
   if (password.length === 0) {
     strengthElement.style.width = "0%";
     strengthElement.className = "password-strength";
@@ -56,19 +57,17 @@ function validatePassword(password, strengthElementId, buttonId = null) {
     strengthElement.className = "password-strength strength-strong";
   }
 
-  // Enable/disable button
   if (button) {
-    const allValid = Object.values(requirements).every(Boolean);
-    button.disabled = !allValid || password.length === 0;
+    button.disabled = !Object.values(requirements).every(Boolean) || password.length === 0;
   }
 }
 
 function updateRequirementIndicators(requirements) {
   const indicators = {
-    "req-length": requirements.length,
-    "req-upper": requirements.upper,
-    "req-lower": requirements.lower,
-    "req-number": requirements.number,
+    "req-length":  requirements.length,
+    "req-upper":   requirements.upper,
+    "req-lower":   requirements.lower,
+    "req-number":  requirements.number,
     "req-special": requirements.special,
   };
 
@@ -76,8 +75,7 @@ function updateRequirementIndicators(requirements) {
     const element = document.getElementById(id);
     if (element) {
       element.style.color = valid ? "#28a745" : "#6c757d";
-      element.innerHTML =
-        (valid ? "✓ " : "• ") + element.textContent.replace(/^[✓•] /, "");
+      element.innerHTML = (valid ? "✓ " : "• ") + element.textContent.replace(/^[✓•] /, "");
     }
   });
 }
@@ -89,119 +87,64 @@ function loadUsers() {
       const table = document.getElementById("userTable");
       table.innerHTML = "";
 
-      if (data.users) {
-        // Mostra statistiche
-        console.log(
-          `📊 Statistiche utenti: ${data.totalUsers} totali, ${data.adminCount} admin`,
-        );
+      const users = data.users || data;
 
-        // Mostra statistiche nella console
-        if (data.adminCount > 1) {
-          console.log(
-            `👥 Sistema multi-admin: ${data.adminCount} amministratori attivi`,
-          );
-        } else {
-          console.log(`⚠️ Sistema con un solo admin: protezione attiva`);
+      users.forEach((user) => {
+        const row = document.createElement("tr");
+        row.className = "fade-in";
+
+        const createdDate = user.created_at
+          ? new Date(user.created_at).toLocaleDateString("it-IT")
+          : "N/A";
+        const lastLogin = user.last_login
+          ? new Date(user.last_login).toLocaleDateString("it-IT")
+          : "Mai";
+
+        // Badge protezione: solo per ultimo admin, e solo spiega che il RUOLO non si può cambiare
+        let protectionBadge = "";
+        if (user.isProtected) {
+          protectionBadge = `
+            <span class="badge bg-warning text-dark ms-1"
+                  title="Ultimo amministratore: non puoi cambiare il ruolo né eliminarlo, ma puoi modificare nome e password">
+              <i class="fas fa-shield-alt"></i> Ultimo Admin
+            </span>
+          `;
         }
 
-        data.users.forEach((user) => {
-          const row = document.createElement("tr");
-          row.className = "fade-in";
-
-          const createdDate = user.created_at
-            ? new Date(user.created_at).toLocaleDateString("it-IT")
-            : "N/A";
-          const lastLogin = user.last_login
-            ? new Date(user.last_login).toLocaleDateString("it-IT")
-            : "Mai";
-
-          // Determina lo stato di protezione
-          let protectionBadge = "";
-          if (user.isProtected) {
-            protectionBadge = `
-              <span class="badge bg-warning text-dark ms-1" title="Ultimo amministratore del sistema - Non eliminabile">
-                <i class="fas fa-shield-alt"></i> Ultimo Admin
-              </span>
-            `;
-          }
-
-          row.innerHTML = `
-            <td><strong>#${user.id}</strong></td>
-            <td>
-                <i class="fas fa-user me-2"></i>
-                ${user.username}
-            </td>
-            <td>
-                <span class="badge ${user.role === "admin" ? "bg-danger" : "bg-primary"}">
-                    <i class="fas ${user.role === "admin" ? "fa-crown" : "fa-user"} me-1"></i>
-                    ${user.role.toUpperCase()}
-                </span>
-                ${protectionBadge}
-            </td>
-            <td><small class="text-muted">${createdDate}</small></td>
-            <td><small class="text-muted">${lastLogin}</small></td>
-            <td>
-                <button class="btn btn-outline-primary btn-sm me-1" 
-                        onclick="editUser(${user.id}, '${user.username}', '${user.role}', ${user.canChangeRole})"
-                        ${!user.canChangeRole ? 'title="Non puoi modificare l\'ultimo amministratore"' : ""}>
-                    <i class="fas fa-edit"></i> Modifica
-                </button>
-                ${
-                  user.canDelete
-                    ? `
-                    <button class="btn btn-outline-danger btn-sm" onclick="deleteUser(${user.id}, '${user.username}')">
-                        <i class="fas fa-trash"></i> Elimina
-                    </button>
-                `
-                    : `
-                    <span class="text-muted small" title="Non puoi eliminare l'ultimo amministratore">
-                        <i class="fas fa-shield-alt me-1"></i>Protetto
-                    </span>
-                `
-                }
-            </td>
-          `;
-          table.appendChild(row);
-        });
-      } else {
-        // Fallback per formato vecchio
-        data.forEach((user) => {
-          const row = document.createElement("tr");
-          row.className = "fade-in";
-
-          const createdDate = user.created_at
-            ? new Date(user.created_at).toLocaleDateString("it-IT")
-            : "N/A";
-          const lastLogin = user.last_login
-            ? new Date(user.last_login).toLocaleDateString("it-IT")
-            : "Mai";
-
-          row.innerHTML = `
-            <td><strong>#${user.id}</strong></td>
-            <td>
-                <i class="fas fa-user me-2"></i>
-                ${user.username}
-            </td>
-            <td>
-                <span class="badge ${user.role === "admin" ? "bg-danger" : "bg-primary"}">
-                    <i class="fas ${user.role === "admin" ? "fa-crown" : "fa-user"} me-1"></i>
-                    ${user.role.toUpperCase()}
-                </span>
-            </td>
-            <td><small class="text-muted">${createdDate}</small></td>
-            <td><small class="text-muted">${lastLogin}</small></td>
-            <td>
-                <button class="btn btn-outline-primary btn-sm me-1" onclick="editUser(${user.id}, '${user.username}', '${user.role}', true)">
-                    <i class="fas fa-edit"></i> Modifica
-                </button>
-                <button class="btn btn-outline-danger btn-sm" onclick="deleteUser(${user.id}, '${user.username}')">
-                    <i class="fas fa-trash"></i> Elimina
-                </button>
-            </td>
-          `;
-          table.appendChild(row);
-        });
-      }
+        // Il pulsante Modifica è SEMPRE abilitato per tutti
+        // canChangeRole serve solo per gestire il select del ruolo nel modal
+        row.innerHTML = `
+          <td><strong>#${user.id}</strong></td>
+          <td>
+            <i class="fas fa-user me-2"></i>${user.username}
+          </td>
+          <td>
+            <span class="badge ${user.role === "admin" ? "bg-danger" : "bg-primary"}">
+              <i class="fas ${user.role === "admin" ? "fa-crown" : "fa-user"} me-1"></i>
+              ${user.role.toUpperCase()}
+            </span>
+            ${protectionBadge}
+          </td>
+          <td><small class="text-muted">${createdDate}</small></td>
+          <td><small class="text-muted">${lastLogin}</small></td>
+          <td>
+            <button class="btn btn-outline-primary btn-sm me-1"
+                    onclick="editUser(${user.id}, '${user.username}', '${user.role}', ${!!user.canChangeRole})">
+              <i class="fas fa-edit"></i> Modifica
+            </button>
+            ${user.canDelete
+              ? `<button class="btn btn-outline-danger btn-sm"
+                         onclick="deleteUser(${user.id}, '${user.username}')">
+                   <i class="fas fa-trash"></i> Elimina
+                 </button>`
+              : `<span class="text-muted small" title="Non puoi eliminare l'ultimo amministratore">
+                   <i class="fas fa-shield-alt me-1"></i>Protetto
+                 </span>`
+            }
+          </td>
+        `;
+        table.appendChild(row);
+      });
     })
     .catch((err) => {
       console.error("Failed to load users:", err);
@@ -217,36 +160,45 @@ function editUser(id, username, role, canChangeRole = true) {
   const roleSelect = document.getElementById("editRole");
   roleSelect.value = role;
 
-  // Disabilita il cambio ruolo se non permesso
+  // Rimuovi avviso precedente se presente
+  const modalBody = roleSelect.closest(".modal-body");
+  const existingWarning = modalBody.querySelector(".admin-protection-warning");
+  if (existingWarning) existingWarning.remove();
+
   if (!canChangeRole && role === "admin") {
+    // Blocca SOLO il select del ruolo, non l'intero form
     roleSelect.disabled = true;
     roleSelect.title = "Non puoi cambiare il ruolo dell'ultimo amministratore";
 
-    // Aggiungi un avviso nel modal
-    const modalBody = roleSelect.closest(".modal-body");
-    let warningDiv = modalBody.querySelector(".admin-protection-warning");
-
-    if (!warningDiv) {
-      warningDiv = document.createElement("div");
-      warningDiv.className =
-        "admin-protection-warning alert alert-warning mt-2";
-      warningDiv.innerHTML = `
-        <i class="fas fa-shield-alt me-2"></i>
-        <strong>Amministratore Protetto:</strong> Non puoi cambiare il ruolo dell'ultimo amministratore del sistema.
-      `;
-      modalBody.appendChild(warningDiv);
+    // Aggiungi un campo hidden con il valore del ruolo
+    // così il form invia comunque il valore corretto anche con select disabilitato
+    let hiddenRole = modalBody.querySelector("#hiddenRole");
+    if (!hiddenRole) {
+      hiddenRole = document.createElement("input");
+      hiddenRole.type = "hidden";
+      hiddenRole.name = "role";
+      hiddenRole.id = "hiddenRole";
+      modalBody.appendChild(hiddenRole);
     }
+    hiddenRole.value = role;
+
+    // Avviso informativo
+    const warningDiv = document.createElement("div");
+    warningDiv.className = "admin-protection-warning alert alert-warning mt-2";
+    warningDiv.innerHTML = `
+      <i class="fas fa-shield-alt me-2"></i>
+      <strong>Ultimo Amministratore:</strong> Puoi modificare nome e password,
+      ma non puoi cambiare il ruolo finché non esistono altri amministratori.
+    `;
+    modalBody.appendChild(warningDiv);
   } else {
+    // Ruolo liberamente modificabile
     roleSelect.disabled = false;
     roleSelect.title = "";
 
-    // Rimuovi l'avviso se presente
-    const warningDiv = roleSelect
-      .closest(".modal-body")
-      .querySelector(".admin-protection-warning");
-    if (warningDiv) {
-      warningDiv.remove();
-    }
+    // Rimuovi hidden role se presente (non serve)
+    const hiddenRole = modalBody.querySelector("#hiddenRole");
+    if (hiddenRole) hiddenRole.remove();
   }
 
   const modal = window.bootstrap.Modal.getOrCreateInstance(
@@ -278,34 +230,24 @@ function checkUrlParams() {
       user_updated: "Utente aggiornato con successo!",
       user_deleted: "Utente eliminato con successo!",
     };
-    showAlert(
-      messages[success] || "Operazione completata con successo!",
-      "success",
-    );
+    showAlert(messages[success] || "Operazione completata con successo!", "success");
   }
 
   if (error) {
     const messages = {
-      missing_fields: "Compila tutti i campi richiesti.",
-      user_exists: "Nome utente già esistente.",
-      update_failed: "Errore nell'aggiornamento utente.",
-      delete_failed: "Errore nell'eliminazione utente.",
+      missing_fields:           "Compila tutti i campi richiesti.",
+      user_exists:              "Nome utente già esistente.",
+      update_failed:            "Errore nell'aggiornamento utente.",
+      delete_failed:            "Errore nell'eliminazione utente.",
       cannot_delete_last_admin: "Non puoi eliminare l'ultimo amministratore.",
-      cannot_change_last_admin:
-        "Non puoi cambiare il ruolo dell'ultimo amministratore.",
-      user_not_found: "Utente non trovato.",
-      invalid_user_id: "ID utente non valido.",
-      weak_password:
-        "Password troppo debole. " + (details || "Controlla i requisiti."),
-      database_error: "Errore del database. Riprova più tardi.",
+      cannot_change_last_admin: "Non puoi cambiare il ruolo dell'ultimo amministratore.",
+      user_not_found:           "Utente non trovato.",
+      invalid_user_id:          "ID utente non valido.",
+      weak_password:            "Password troppo debole. " + (details ? decodeURIComponent(details) : "Controlla i requisiti."),
+      database_error:           "Errore del database. Riprova più tardi.",
     };
 
-    let message = messages[error] || "Si è verificato un errore.";
-    if (details && !messages[error]) {
-      message += ` Dettagli: ${decodeURIComponent(details)}`;
-    }
-
-    showAlert(message, "danger");
+    showAlert(messages[error] || "Si è verificato un errore.", "danger");
   }
 }
 
@@ -324,35 +266,9 @@ function showAlert(message, type) {
 
   alertContainer.appendChild(alertEl);
 
-  // Auto-remove after 5 seconds
   setTimeout(() => {
     if (document.getElementById(alertId)) {
-      const alert = window.bootstrap.Alert.getOrCreateInstance(alertEl);
-      alert.close();
+      window.bootstrap.Alert.getOrCreateInstance(alertEl).close();
     }
   }, 5000);
 }
-
-// Add fade-in animation
-const style = document.createElement("style");
-style.textContent = `
-  .fade-in {
-      animation: fadeIn 0.3s ease;
-  }
-  
-  @keyframes fadeIn {
-      from {
-          opacity: 0;
-          transform: translateY(10px);
-      }
-      to {
-          opacity: 1;
-          transform: translateY(0);
-      }
-  }
-  
-  .admin-protection-warning {
-      border-left: 4px solid #ffc107;
-  }
-`;
-document.head.appendChild(style);
