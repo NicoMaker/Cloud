@@ -5,6 +5,9 @@ let socket;
 let userRole = "user";
 let currentUserId = null;
 let isUploading = false;
+let copyMoveAction = null; // 'copy' o 'move'
+let copyMoveSourcePath = null;
+
 const io = window.io;
 const bootstrap = window.bootstrap;
 let mainFolderNames = [];
@@ -16,7 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSocketConnection();
 });
 
-// Funzione per verificare sessione
 async function checkSession() {
   try {
     const response = await fetch("/api/session-check");
@@ -100,7 +102,6 @@ function setupEventListeners() {
     });
   }
 
-  // Premere Invio nella modale rinomina
   const renameInput = document.getElementById("renameNewName");
   if (renameInput) {
     renameInput.addEventListener("keydown", (e) => {
@@ -125,8 +126,6 @@ function setupSocketConnection() {
 
   socket.on("filesChanged", () => {
     loadFiles(currentPath);
-    fetchAndShowSidebarTree(currentPath);
-    showMainTree(currentPath);
   });
 
   socket.on("forceLogout", (payload) => {
@@ -145,6 +144,87 @@ function setupSocketConnection() {
 }
 
 // =============================================
+//  FUNZIONE COPIA
+// =============================================
+
+function openCopyModal(sourcePath) {
+  copyMoveAction = "copy";
+  copyMoveSourcePath = sourcePath;
+  
+  document.getElementById("copyMoveSourcePath").value = sourcePath;
+  document.getElementById("copyMoveAction").value = "copy";
+  document.getElementById("copyMoveTitle").textContent = "Copia";
+  document.getElementById("confirmCopyMoveText").textContent = "Copia";
+  document.getElementById("copyMoveDestFolder").value = "";
+  document.getElementById("copyMoveName").value = "";
+
+  const modal = new bootstrap.Modal(document.getElementById("copyMoveModal"));
+  modal.show();
+}
+
+// =============================================
+//  FUNZIONE SPOSTA
+// =============================================
+
+function openMoveModal(sourcePath) {
+  copyMoveAction = "move";
+  copyMoveSourcePath = sourcePath;
+  
+  document.getElementById("copyMoveSourcePath").value = sourcePath;
+  document.getElementById("copyMoveAction").value = "move";
+  document.getElementById("copyMoveTitle").textContent = "Sposta";
+  document.getElementById("confirmCopyMoveText").textContent = "Sposta";
+  document.getElementById("copyMoveDestFolder").value = "";
+  document.getElementById("copyMoveName").value = "";
+
+  const modal = new bootstrap.Modal(document.getElementById("copyMoveModal"));
+  modal.show();
+}
+
+async function confirmCopyMove() {
+  const sourcePath = document.getElementById("copyMoveSourcePath").value;
+  const action = document.getElementById("copyMoveAction").value;
+  const destFolder = document.getElementById("copyMoveDestFolder").value.trim();
+  const newName = document.getElementById("copyMoveName").value.trim();
+
+  if (!sourcePath) {
+    showToast("Percorso sorgente non valido", "error");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/copy-move", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        sourcePath,
+        destFolder: destFolder || "",
+        newName: newName || path.basename(sourcePath),
+      }),
+      credentials: "same-origin",
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      const modalEl = document.getElementById("copyMoveModal");
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+
+      const actionText = action === "copy" ? "copiato" : "spostato";
+      showToast(`File/cartella ${actionText} con successo!`, "success");
+      loadFiles(currentPath);
+    } else {
+      showToast("Errore: " + (data.message || "Operazione fallita"), "error");
+    }
+  } catch (err) {
+    console.error("Errore copia/sposta:", err);
+    showToast("Errore durante l'operazione", "error");
+  }
+}
+
+// =============================================
 //  FUNZIONE RINOMINA
 // =============================================
 
@@ -160,7 +240,6 @@ function openRenameModal(oldPath, type) {
   const modal = new bootstrap.Modal(document.getElementById("renameModal"));
   modal.show();
 
-  // Focus e selezione testo dopo apertura modale
   document.getElementById("renameModal").addEventListener(
     "shown.bs.modal",
     () => {
@@ -196,15 +275,12 @@ async function confirmRename() {
     const data = await response.json();
 
     if (data.success) {
-      // Chiudi la modale
       const modalEl = document.getElementById("renameModal");
       const modal = bootstrap.Modal.getInstance(modalEl);
       modal.hide();
 
       showToast(`Rinominato con successo in "${newName}"`, "success");
       loadFiles(currentPath);
-      fetchAndShowSidebarTree(currentPath);
-      showMainTree(currentPath);
     } else {
       showToast("Errore durante la rinomina: " + (data.message || "Errore sconosciuto"), "error");
     }
@@ -215,7 +291,7 @@ async function confirmRename() {
 }
 
 // =============================================
-//  FUNZIONE DOWNLOAD ZIP CARTELLA/FILE
+//  DOWNLOAD ZIP
 // =============================================
 
 async function downloadItemAsZip(filePath, fileName) {
@@ -234,10 +310,6 @@ async function downloadItemAsZip(filePath, fileName) {
   }
 }
 
-// =============================================
-//  FUNZIONE DOWNLOAD ZIP VISUALIZZAZIONE CORRENTE
-// =============================================
-
 async function downloadCurrentView() {
   try {
     const folderName = currentPath ? currentPath.split("/").pop() : "files";
@@ -255,7 +327,6 @@ async function downloadCurrentView() {
       throw new Error(`Errore HTTP ${response.status}`);
     }
 
-    // Ottieni il blob dallo stream della risposta
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -421,8 +492,6 @@ async function startUpload() {
     showToast(`✅ ${data.totalFiles || 0} file caricati con successo!`, "success");
     clearSelection();
     loadFiles(currentPath);
-    fetchAndShowSidebarTree(currentPath);
-    showMainTree(currentPath);
   } catch (error) {
     console.error("Errore upload:", error);
     showToast("Errore durante il caricamento dei file", "danger");
@@ -436,10 +505,6 @@ function clearSelection() {
   document.getElementById("folderInput").value = "";
   document.getElementById("selectedFiles").style.display = "none";
   document.getElementById("filesList").innerHTML = "";
-}
-
-function updateUploadProgress(data) {
-  console.log(`Upload: ${data.processed}/${data.total} (${data.percentage}%)`);
 }
 
 // =============================================
@@ -467,49 +532,6 @@ function loadFiles(folderPath) {
 }
 
 function displayFiles(files, folderPath) {
-  const sidebar = document.getElementById("sidebarTree");
-
-  const tree = {};
-  files.forEach((item) => {
-    const parts = item.path.split("/");
-    let node = tree;
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (i === parts.length - 1) {
-        if (item.type === "folder") {
-          if (!node[part]) node[part] = {};
-        } else {
-          if (!node.files) node.files = [];
-          node.files.push(part);
-        }
-      } else {
-        if (!node[part]) node[part] = {};
-        node = node[part];
-      }
-    }
-  });
-
-  function renderTree(node, level = 0) {
-    let html = '<ul style="margin-left:' + level * 16 + 'px">';
-    for (const key in node) {
-      if (key === "files") {
-        node.files.forEach((f) => {
-          html += `<li><i class='fas fa-file'></i> ${f}</li>`;
-        });
-      } else {
-        html += `<li><i class='fas fa-folder'></i> <b>${key}</b>`;
-        html += renderTree(node[key], level + 1);
-        html += "</li>";
-      }
-    }
-    html += "</ul>";
-    return html;
-  }
-
-  if (sidebar) {
-    sidebar.innerHTML = `<div class='mb-2'><b>Struttura Cloud</b></div>${renderTree(tree)}`;
-  }
-
   const fileList = document.getElementById("fileList");
   fileList.innerHTML = "";
 
@@ -559,32 +581,48 @@ function displayFiles(files, folderPath) {
     const size = file.type === "folder" ? "-" : formatFileSize(file.size);
     const modified = new Date(file.modified).toLocaleDateString("it-IT");
 
-    // Pulsante download zip per cartelle/file
+    // Pulsante download zip
     const downloadZipBtn = `
       <button onclick="downloadItemAsZip('${file.path}', '${file.name}')" 
-              class="btn btn-outline-info btn-sm" 
+              class="btn btn-sm btn-outline-info" 
               title="Scarica come ZIP">
         <i class="fas fa-download"></i>
       </button>`;
 
-    // Pulsante rinomina (penna) - visibile a tutti gli utenti loggati
+    // Pulsante rinomina
     const renameBtn = `
       <button onclick="openRenameModal('${file.path}', '${file.type}')" 
-              class="btn btn-outline-secondary btn-sm" 
+              class="btn btn-sm btn-outline-secondary" 
               title="Rinomina">
         <i class="fas fa-pen"></i>
       </button>`;
 
-    // Pulsante download solo per file singoli
+    // Pulsante copia
+    const copyBtn = `
+      <button onclick="openCopyModal('${file.path}')" 
+              class="btn btn-sm btn-outline-primary" 
+              title="Copia">
+        <i class="fas fa-copy"></i>
+      </button>`;
+
+    // Pulsante sposta
+    const moveBtn = `
+      <button onclick="openMoveModal('${file.path}')" 
+              class="btn btn-sm btn-outline-warning" 
+              title="Sposta">
+        <i class="fas fa-arrows-alt"></i>
+      </button>`;
+
+    // Pulsante download solo per file
     const downloadBtn = file.type === "file"
-      ? `<a href="/download/${file.path}" class="btn btn-outline-primary btn-sm" title="Scarica file singolo">
+      ? `<a href="/download/${file.path}" class="btn btn-sm btn-outline-success" title="Scarica file">
            <i class="fas fa-file-download"></i>
          </a>`
       : "";
 
     // Pulsante elimina solo per admin
     const deleteBtn = userRole === "admin"
-      ? `<button onclick="deleteItem('${file.path}', '${file.name}')" class="btn btn-outline-danger btn-sm" title="Elimina">
+      ? `<button onclick="deleteItem('${file.path}', '${file.name}')" class="btn btn-sm btn-outline-danger" title="Elimina">
            <i class="fas fa-trash"></i>
          </button>`
       : "";
@@ -608,6 +646,8 @@ function displayFiles(files, folderPath) {
           ${downloadBtn}
           ${downloadZipBtn}
           ${renameBtn}
+          ${copyBtn}
+          ${moveBtn}
           ${deleteBtn}
         </div>
       </td>
@@ -770,6 +810,7 @@ function showToast(message, type = "info") {
   const toastColors = {
     success: "text-bg-success",
     error: "text-bg-danger",
+    danger: "text-bg-danger",
     warning: "text-bg-warning",
     info: "text-bg-info",
   };
@@ -777,6 +818,7 @@ function showToast(message, type = "info") {
   const toastIcons = {
     success: "fas fa-check-circle",
     error: "fas fa-exclamation-triangle",
+    danger: "fas fa-exclamation-triangle",
     warning: "fas fa-exclamation-circle",
     info: "fas fa-info-circle",
   };
@@ -830,8 +872,6 @@ function createNewFolder() {
         input.value = "";
         showToast(`Cartella "${folderName}" creata con successo!`, "success");
         loadFiles(currentPath);
-        fetchAndShowSidebarTree(currentPath);
-        showMainTree(currentPath);
       } else {
         showToast("Errore: " + (data.message || "Impossibile creare la cartella."), "error");
       }
@@ -842,65 +882,6 @@ function createNewFolder() {
     });
 }
 
-async function fetchAndShowSidebarTree(folder = "") {
-  const sidebar = document.getElementById("sidebarTree");
-  if (!sidebar) return;
-  try {
-    const res = await fetch(
-      `/api/tree${folder ? `?folder=${encodeURIComponent(folder)}` : ""}`,
-    );
-    const tree = await res.json();
-    function renderTree(node, level = 0) {
-      let html = '<ul style="margin-left:' + level * 16 + 'px">';
-      for (const folderName in node.folders) {
-        html += `<li><i class='fas fa-folder'></i> <b>${folderName}</b>`;
-        html += renderTree(node.folders[folderName], level + 1);
-        html += "</li>";
-      }
-      if (node.files) {
-        node.files.forEach((f) => {
-          html += `<li><i class='fas fa-file'></i> ${f}</li>`;
-        });
-      }
-      html += "</ul>";
-      return html;
-    }
-    sidebar.innerHTML = `<div class='mb-2'><b>Struttura Cloud</b></div>${renderTree(tree)}`;
-  } catch (e) {
-    sidebar.innerHTML = '<div class="text-danger">Errore caricamento struttura cloud</div>';
-  }
-}
-
-async function showMainTree(folder = "") {
-  const mainContainer = document.getElementById("mainTree");
-  if (!mainContainer) return;
-  try {
-    const res = await fetch(
-      `/api/tree${folder ? `?folder=${encodeURIComponent(folder)}` : ""}`,
-    );
-    const tree = await res.json();
-    function renderTree(node, level = 0) {
-      let html = '<ul style="margin-left:' + level * 16 + 'px">';
-      for (const folderName in node.folders) {
-        html += `<li><i class='fas fa-folder'></i> <b>${folderName}</b>`;
-        html += renderTree(node.folders[folderName], level + 1);
-        html += "</li>";
-      }
-      if (node.files) {
-        node.files.forEach((f) => {
-          html += `<li><i class='fas fa-file'></i> ${f}</li>`;
-        });
-      }
-      html += "</ul>";
-      return html;
-    }
-    mainContainer.innerHTML = `<div class='mb-2'><b>Contenuto Cloud</b></div>${renderTree(tree)}`;
-  } catch (e) {
-    mainContainer.innerHTML = '<div class="text-danger">Errore caricamento struttura cloud</div>';
-  }
-}
-
 window.addEventListener("DOMContentLoaded", () => {
-  fetchAndShowSidebarTree();
-  showMainTree();
+  // Caricamento iniziale completato
 });

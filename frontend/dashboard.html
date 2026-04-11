@@ -22,36 +22,44 @@
         <a class="navbar-brand" href="#">
           <i class="fas fa-shield-alt me-2"></i>Gestore File Sicuro
         </a>
-        <div class="navbar-nav ms-auto">
-          <span class="navbar-text me-3" id="userInfo">
-            <i class="fas fa-user me-1"></i>Caricamento...
-          </span>
-          <a
-            href="/admin.html"
-            class="btn btn-outline-warning btn-sm me-2"
-            id="adminBtn"
-            style="display: none"
-          >
-            <i class="fas fa-users-cog me-1"></i>Pannello Admin
-          </a>
-          <button
-            class="btn btn-outline-info btn-sm me-2"
-            id="downloadViewBtn"
-            onclick="downloadCurrentView()"
-          >
-            <i class="fas fa-download me-1"></i>Scarica Visualizzazione ZIP
-          </button>
-          <button
-            class="btn btn-outline-danger btn-sm me-2"
-            id="deleteAllBtn"
-            style="display: none"
-            onclick="deleteAllFiles()"
-          >
-            <i class="fas fa-trash-alt me-1"></i>Elimina Tutto
-          </button>
-          <a href="/logout" class="btn btn-outline-light btn-sm">
-            <i class="fas fa-sign-out-alt me-1"></i>Esci
-          </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <div class="navbar-nav ms-auto">
+            <span class="navbar-text me-3" id="userInfo">
+              <i class="fas fa-user me-1"></i>Caricamento...
+            </span>
+            <a
+              href="/admin.html"
+              class="btn btn-navbar btn-sm me-2"
+              id="adminBtn"
+              style="display: none"
+              title="Accedi al pannello amministrativo"
+            >
+              <i class="fas fa-users-cog me-1"></i><span class="btn-text">Pannello Admin</span>
+            </a>
+            <button
+              class="btn btn-navbar btn-sm me-2"
+              id="downloadViewBtn"
+              onclick="downloadCurrentView()"
+              title="Scarica la visualizzazione attuale come ZIP"
+            >
+              <i class="fas fa-download me-1"></i><span class="btn-text">Scarica ZIP</span>
+            </button>
+            <button
+              class="btn btn-navbar btn-sm me-2"
+              id="deleteAllBtn"
+              style="display: none"
+              onclick="deleteAllFiles()"
+              title="Elimina tutti i file e le cartelle"
+            >
+              <i class="fas fa-trash-alt me-1"></i><span class="btn-text">Elimina Tutto</span>
+            </button>
+            <a href="/logout" class="btn btn-navbar btn-sm" title="Esci dall'applicazione">
+              <i class="fas fa-sign-out-alt me-1"></i><span class="btn-text">Esci</span>
+            </a>
+          </div>
         </div>
       </div>
     </nav>
@@ -75,9 +83,10 @@
                   placeholder="Nome cartella..."
                 />
                 <button
-                  class="btn btn-outline-success"
+                  class="btn btn-success"
                   type="button"
                   onclick="createNewFolder()"
+                  title="Crea una nuova cartella"
                 >
                   <i class="fas fa-folder-plus me-1"></i>Crea
                 </button>
@@ -106,9 +115,10 @@
                       style="display: none"
                     />
                     <button
-                      class="btn btn-outline-primary"
+                      class="btn btn-primary"
                       type="button"
                       onclick="selectFiles()"
+                      title="Seleziona file da caricare"
                     >
                       <i class="fas fa-file me-1"></i>Sfoglia File
                     </button>
@@ -128,9 +138,10 @@
                       style="display: none"
                     />
                     <button
-                      class="btn btn-outline-secondary"
+                      class="btn btn-secondary"
                       type="button"
                       onclick="selectFolder()"
+                      title="Seleziona una cartella da caricare"
                     >
                       <i class="fas fa-folder me-1"></i>Sfoglia Cartella
                     </button>
@@ -150,6 +161,7 @@
                       type="button"
                       class="btn btn-success"
                       onclick="startUpload()"
+                      title="Avvia il caricamento dei file selezionati"
                     >
                       <i class="fas fa-upload me-1"></i>Carica File
                     </button>
@@ -157,6 +169,7 @@
                       type="button"
                       class="btn btn-outline-secondary"
                       onclick="clearSelection()"
+                      title="Cancella la selezione di file"
                     >
                       <i class="fas fa-times me-1"></i>Cancella
                     </button>
@@ -196,8 +209,9 @@
                 </nav>
               </div>
               <button
-                class="btn btn-outline-primary btn-sm"
+                class="btn btn-light btn-sm"
                 onclick="refreshFiles()"
+                title="Aggiorna l'elenco dei file"
               >
                 <i class="fas fa-sync-alt me-1"></i>Aggiorna
               </button>
@@ -292,6 +306,54 @@
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
             <button type="button" class="btn btn-primary" onclick="confirmRename()">
               <i class="fas fa-check me-1"></i>Rinomina
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Copia/Sposta -->
+    <div class="modal fade" id="copyMoveModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="fas fa-copy me-2"></i><span id="copyMoveTitle">Copia</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="copyMoveSourcePath" />
+            <input type="hidden" id="copyMoveAction" />
+            <div class="mb-3">
+              <label for="copyMoveDestFolder" class="form-label">Seleziona Cartella Destinazione</label>
+              <input
+                type="text"
+                class="form-control"
+                id="copyMoveDestFolder"
+                placeholder="Percorso destinazione (vuoto = root)"
+              />
+              <div class="form-text text-muted">
+                <i class="fas fa-info-circle me-1"></i>Lascia vuoto per la cartella root.
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="copyMoveName" class="form-label">Nome Destinazione</label>
+              <input
+                type="text"
+                class="form-control"
+                id="copyMoveName"
+                placeholder="Nome file/cartella..."
+              />
+              <div class="form-text text-muted">
+                <i class="fas fa-info-circle me-1"></i>Lascia vuoto per mantenere il nome originale.
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+            <button type="button" class="btn btn-primary" id="confirmCopyMoveBtn" onclick="confirmCopyMove()">
+              <i class="fas fa-check me-1"></i><span id="confirmCopyMoveText">Copia</span>
             </button>
           </div>
         </div>
