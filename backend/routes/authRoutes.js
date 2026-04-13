@@ -3,8 +3,7 @@
 // =============================================
 
 const express = require("express");
-const router = express.Router();
-const { verifyPassword } = require("./1-passwordUtils");
+const { verifyPassword } = require("../services/passwordUtils");
 
 function setupAuthRoutes(app, db, requireLogin) {
   // Login

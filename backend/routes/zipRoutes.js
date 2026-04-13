@@ -5,10 +5,10 @@
 const fs = require("fs");
 const path = require("path");
 const archiver = require("archiver");
-const { validatePathTraversal } = require("./5-fileSystemUtils");
+const { validatePathTraversal } = require("../services/fileSystemUtils");
 
 function setupZipRoutes(app, requireLogin) {
-  const baseFolder = path.join(__dirname, "../frontend/uploads");
+  const baseFolder = path.join(__dirname, "../../frontend/uploads");
 
   // GET download zip singolo file/cartella
   app.get("/api/download-zip/*", requireLogin, (req, res) => {

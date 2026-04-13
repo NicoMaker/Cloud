@@ -5,11 +5,11 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const fs = require("fs");
-const { hashPassword } = require("./1-passwordUtils");
+const { hashPassword } = require("../services/passwordUtils");
 
-function setupDatabase(__dirname) {
-  const dbDir = path.join(__dirname, "db");
-  if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
+function setupDatabase(rootDir) {
+  const dbDir = path.join(rootDir, "backend", "db");
+  if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
   const dbFile = path.join(dbDir, "database.db");
   const db = new sqlite3.Database(dbFile);

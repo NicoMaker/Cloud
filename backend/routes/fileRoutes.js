@@ -5,10 +5,10 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const { validatePathTraversal, ensureUploadFolder } = require("./5-fileSystemUtils");
+const { validatePathTraversal, ensureUploadFolder } = require("../services/fileSystemUtils");
 
 function setupFileRoutes(app, db, requireLogin) {
-  const baseFolder = path.join(__dirname, "../frontend/uploads");
+  const baseFolder = path.join(__dirname, "../../frontend/uploads");
 
   // GET lista file/cartelle
   app.get("/api/files", requireLogin, (req, res) => {

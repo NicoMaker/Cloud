@@ -8,17 +8,17 @@ const socketIo = require("socket.io");
 const path = require("path");
 const fileUpload = require("express-fileupload");
 
-// Importa tutti i moduli
-const { setupDatabase } = require("./2-databaseSetup");
-const { createSessionMiddleware, debugSessionMiddleware, requireLogin, requireAdmin } = require("./6-authMiddleware");
-const { setupAuthRoutes } = require("./7-authRoutes");
-const { setupFileRoutes } = require("./8-fileRoutes");
-const { setupFileManipulationRoutes } = require("./9-fileManipulationRoutes");
-const { setupZipRoutes } = require("./10-zipRoutes");
-const { setupUserRoutes } = require("./11-userRoutes");
-const { setupWebSocket } = require("./12-websocketSetup");
-const { getUserRoom, forceLogoutUserEverywhere } = require("./4-sessionUtils");
-const { getLocalIP, getPublicIP } = require("./13-ipUtils");
+// Importa tutti i moduli con i nuovi percorsi
+const { setupDatabase } = require("./backend/config/databaseSetup");
+const { createSessionMiddleware, debugSessionMiddleware, requireLogin, requireAdmin } = require("./backend/middleware/authMiddleware");
+const { setupAuthRoutes } = require("./backend/routes/authRoutes");
+const { setupFileRoutes } = require("./backend/routes/fileRoutes");
+const { setupFileManipulationRoutes } = require("./backend/routes/fileManipulationRoutes");
+const { setupZipRoutes } = require("./backend/routes/zipRoutes");
+const { setupUserRoutes } = require("./backend/routes/userRoutes");
+const { setupWebSocket } = require("./backend/sockets/websocketSetup");
+const { getUserRoom, forceLogoutUserEverywhere } = require("./backend/services/sessionUtils");
+const { getLocalIP, getPublicIP } = require("./backend/services/ipUtils");
 
 // =============================================
 //  SETUP EXPRESS & SOCKET.IO
@@ -38,7 +38,7 @@ const db = setupDatabase(__dirname);
 //  MIDDLEWARE
 // =============================================
 
-app.use(express.static(path.join(__dirname, "../frontend")));
+app.use(express.static(path.join(__dirname, "frontend")));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(

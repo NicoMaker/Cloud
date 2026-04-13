@@ -2,7 +2,7 @@
 //  SETUP WEBSOCKET (SOCKET.IO)
 // =============================================
 
-const { getUserRoom } = require("./4-sessionUtils");
+const { getUserRoom } = require("../services/sessionUtils");
 
 function setupWebSocket(io) {
   io.on("connection", (socket) => {

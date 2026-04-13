@@ -2,8 +2,8 @@
 //  ROUTE USER MANAGEMENT
 // =============================================
 
-const { hashPassword, validatePassword } = require("./1-passwordUtils");
-const { countAdmins, canDeleteAdmin, canChangeAdminToUser } = require("./3-adminUtils");
+const { hashPassword, validatePassword } = require("../services/passwordUtils");
+const { countAdmins, canDeleteAdmin, canChangeAdminToUser } = require("../services/adminUtils");
 
 function setupUserRoutes(app, db, forceLogoutUserEverywhere, requireAdmin) {
   // GET lista utenti

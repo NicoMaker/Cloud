@@ -4,10 +4,10 @@
 
 const fs = require("fs");
 const path = require("path");
-const { copyRecursive, validatePathTraversal } = require("./5-fileSystemUtils");
+const { copyRecursive, validatePathTraversal } = require("../services/fileSystemUtils");
 
 function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
-  const baseFolder = path.join(__dirname, "../frontend/uploads");
+  const baseFolder = path.join(__dirname, "../../frontend/uploads");
 
   // POST rinomina
   app.post("/api/rename", requireLogin, (req, res) => {
