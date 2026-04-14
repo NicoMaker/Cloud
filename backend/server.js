@@ -9,16 +9,16 @@ const path = require("path");
 const fileUpload = require("express-fileupload");
 
 // Importa tutti i moduli con i nuovi percorsi
-const { setupDatabase } = require("./backend/config/databaseSetup");
-const { createSessionMiddleware, debugSessionMiddleware, requireLogin, requireAdmin } = require("./backend/middleware/authMiddleware");
-const { setupAuthRoutes } = require("./backend/routes/authRoutes");
-const { setupFileRoutes } = require("./backend/routes/fileRoutes");
-const { setupFileManipulationRoutes } = require("./backend/routes/fileManipulationRoutes");
-const { setupZipRoutes } = require("./backend/routes/zipRoutes");
-const { setupUserRoutes } = require("./backend/routes/userRoutes");
-const { setupWebSocket } = require("./backend/sockets/websocketSetup");
-const { getUserRoom, forceLogoutUserEverywhere } = require("./backend/services/sessionUtils");
-const { getLocalIP, getPublicIP } = require("./backend/services/ipUtils");
+const { setupDatabase } = require("./config/databaseSetup");
+const { createSessionMiddleware, debugSessionMiddleware, requireLogin, requireAdmin } = require("./middleware/authMiddleware");
+const { setupAuthRoutes } = require("./routes/authRoutes");
+const { setupFileRoutes } = require("./routes/fileRoutes");
+const { setupFileManipulationRoutes } = require("./routes/fileManipulationRoutes");
+const { setupZipRoutes } = require("./routes/zipRoutes");
+const { setupUserRoutes } = require("./routes/userRoutes");
+const { setupWebSocket } = require("./sockets/websocketSetup");
+const { getUserRoom, forceLogoutUserEverywhere } = require("./services/sessionUtils");
+const { getLocalIP, getPublicIP } = require("./services/ipUtils");
 
 // =============================================
 //  SETUP EXPRESS & SOCKET.IO
@@ -38,7 +38,7 @@ const db = setupDatabase(__dirname);
 //  MIDDLEWARE
 // =============================================
 
-app.use(express.static(path.join(__dirname, "frontend")));
+app.use(express.static(path.join(__dirname, "../frontend")));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(
@@ -58,6 +58,31 @@ app.use(sessionMiddleware);
 app.sessionStore = sessionMiddleware.store;
 
 app.use(debugSessionMiddleware());
+
+// =============================================
+//  ROUTE PER LA PAGINA PRINCIPALE
+// =============================================
+
+// Route per la root - reindirizza a login o dashboard
+app.get('/', (req, res) => {
+    if (req.session && req.session.userId) {
+        // Se già loggato, mostra il dashboard
+        res.sendFile(path.join(__dirname, "../frontend", "dashboard.html"));
+    } else {
+        // Altrimenti mostra la pagina di login
+        res.sendFile(path.join(__dirname, "../frontend", "login.html"));
+    }
+});
+
+// Route esplicita per la pagina di login
+app.get('/login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend", "login.html"));
+});
+
+// Route per il dashboard (protetta)
+app.get('/dashboard.html', requireLogin, (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend", "dashboard.html"));
+});
 
 // =============================================
 //  SETUP ROUTES

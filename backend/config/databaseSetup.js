@@ -8,7 +8,7 @@ const fs = require("fs");
 const { hashPassword } = require("../services/passwordUtils");
 
 function setupDatabase(rootDir) {
-  const dbDir = path.join(rootDir, "backend", "db");
+  const dbDir = path.join(rootDir, "db");
   if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
   const dbFile = path.join(dbDir, "database.db");
