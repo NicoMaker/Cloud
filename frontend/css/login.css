@@ -90,10 +90,16 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* Input placeholder */
 .form-control::placeholder {
   color: #adb5bd;
   font-weight: 400;
+}
+
+/* Footer Info */
+#companyInfo {
+  border-top: 1px solid #e9ecef;
+  padding-top: 1rem;
+  margin-top: 1rem;
 }
 
 /* Responsive */
@@ -114,4 +120,12 @@ body {
     padding: 10px;
     font-size: 0.95rem;
   }
+}
+
+/* Stili per il logo nel login */
+.login-logo {
+  max-height: 80px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 10px;
 }

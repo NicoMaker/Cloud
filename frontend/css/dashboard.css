@@ -2,6 +2,17 @@
 body {
   background-color: #f8f9fa;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.content-wrapper {
+  flex: 1;
+}
+
+.footer {
+  margin-top: auto;
 }
 
 .bg-gradient {
@@ -20,6 +31,8 @@ body {
   font-weight: 700;
   font-size: 1.3rem;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
 }
 
 .navbar-text {
@@ -116,7 +129,6 @@ body {
   font-size: 0.875rem;
 }
 
-/* Bottoni Primari */
 .btn-primary {
   background-color: #0d6efd;
   border-color: #0d6efd;
@@ -131,7 +143,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Bottoni Secondari */
 .btn-secondary {
   background-color: #6c757d;
   border-color: #6c757d;
@@ -146,7 +157,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Bottoni Success */
 .btn-success {
   background-color: #198754;
   border-color: #198754;
@@ -161,7 +171,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Bottoni Outline Primary */
 .btn-outline-primary {
   color: #0d6efd;
   border: 2px solid #0d6efd;
@@ -176,7 +185,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Bottoni Outline Secondary */
 .btn-outline-secondary {
   color: #6c757d;
   border: 2px solid #6c757d;
@@ -191,7 +199,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Bottoni Outline Info */
 .btn-outline-info {
   color: #0dcaf0;
   border: 2px solid #0dcaf0;
@@ -206,7 +213,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Bottoni Outline Danger */
 .btn-outline-danger {
   color: #dc3545;
   border: 2px solid #dc3545;
@@ -221,7 +227,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Bottoni Outline Success */
 .btn-outline-success {
   color: #198754;
   border: 2px solid #198754;
@@ -236,7 +241,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Bottoni Outline Warning */
 .btn-outline-warning {
   color: #ffc107;
   border: 2px solid #ffc107;
@@ -251,7 +255,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Bottoni Light (per navbar) */
 .btn-light {
   color: #495057;
   background-color: rgba(255, 255, 255, 0.85);
@@ -623,7 +626,6 @@ body {
   }
 }
 
-/* Badge */
 .badge {
   font-weight: 600;
   padding: 0.4rem 0.8rem;
@@ -631,9 +633,39 @@ body {
   letter-spacing: 0.3px;
 }
 
-/* Alert */
 .alert {
   border-radius: 10px;
   border: none;
   font-weight: 500;
+}
+
+/* Footer */
+.footer {
+  background-color: #f8f9fa !important;
+  border-top: 1px solid #dee2e6 !important;
+}
+
+/* Stili per il logo nella navbar e footer */
+.navbar-logo {
+  height: 35px;
+  width: auto;
+  margin-right: 10px;
+  object-fit: contain;
+}
+
+.footer-logo {
+  height: 25px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Responsive per il logo */
+@media (max-width: 768px) {
+  .navbar-logo {
+    height: 28px;
+  }
+  
+  .footer-logo {
+    height: 20px;
+  }
 }
