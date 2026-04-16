@@ -22,7 +22,8 @@
         <div class="col-md-6 col-lg-5">
           <div class="login-container">
             <div class="login-header">
-              <img src="img/logo.png" alt="Logo Aziendale" class="mb-3 login-logo" onerror="this.onerror=null; this.style.display='none'; document.getElementById('fallbackIcon').style.display='inline-block';">
+              <img src="img/logo.png" alt="Logo Aziendale" class="mb-3 login-logo"
+                onerror="this.onerror=null; this.style.display='none'; document.getElementById('fallbackIcon').style.display='inline-block';">
               <i class="fas fa-shield-alt fa-3x mb-3" id="fallbackIcon" style="display: none;"></i>
               <h2 class="mb-0">Gestore File Sicuro</h2>
               <p class="mb-0 opacity-75">
@@ -53,23 +54,37 @@
                   <label for="password" class="form-label">
                     <i class="fas fa-lock me-2"></i>Password
                   </label>
-                  <input
-                    type="password"
-                    class="form-control"
-                    id="password"
-                    name="password"
-                    required
-                    placeholder="inserisci password"
-                  />
+                  <div class="input-group">
+                    <input
+                      type="password"
+                      class="form-control"
+                      id="password"
+                      name="password"
+                      required
+                      placeholder="inserisci password"
+                    />
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="togglePassword('password', 'eyeLogin')"
+                            tabindex="-1" title="Mostra/nascondi password">
+                      <i class="fas fa-eye" id="eyeLogin"></i>
+                    </button>
+                  </div>
+
+                  <!-- Barra forza password (identica all'admin) -->
+                  <div class="password-strength" id="loginPasswordStrength"></div>
+
+                  <!-- Requisiti con indicatori dinamici -->
                   <div class="password-requirements">
                     <small>
-                      <i class="fas fa-info-circle me-1"></i>
-                      La password deve contenere:
+                      <i class="fas fa-shield-alt me-1"></i>
+                      <strong>Requisiti Password:</strong>
                     </small>
                     <ul>
-                      <li>Almeno 8 caratteri</li>
-                      <li>Una lettera maiuscola e minuscola</li>
-                      <li>Un numero e un carattere speciale</li>
+                      <li id="req-length">Almeno 8 caratteri</li>
+                      <li id="req-upper">Una lettera maiuscola</li>
+                      <li id="req-lower">Una lettera minuscola</li>
+                      <li id="req-number">Un numero</li>
+                      <li id="req-special">Un carattere speciale (!@#$%^&*)</li>
                     </ul>
                   </div>
                 </div>

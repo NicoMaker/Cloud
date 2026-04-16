@@ -61,13 +61,20 @@
             </div>
             <div class="col-md-4">
               <label for="password" class="form-label">Password</label>
-              <input
-                type="password"
-                class="form-control"
-                id="password"
-                name="password"
-                required
-              />
+              <div class="input-group">
+                <input
+                  type="password"
+                  class="form-control"
+                  id="password"
+                  name="password"
+                  required
+                />
+                <button class="btn btn-outline-secondary" type="button"
+                        onclick="togglePassword('password', 'eyeCreate')"
+                        tabindex="-1" title="Mostra/nascondi password">
+                  <i class="fas fa-eye" id="eyeCreate"></i>
+                </button>
+              </div>
               <div class="password-strength" id="passwordStrength"></div>
               <div class="password-requirements">
                 <small>
@@ -197,12 +204,19 @@
                 <label for="editPassword" class="form-label"
                   >Nuova Password (lascia vuoto per non modificare)</label
                 >
-                <input
-                  type="password"
-                  class="form-control"
-                  id="editPassword"
-                  name="password"
-                />
+                <div class="input-group">
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="editPassword"
+                    name="password"
+                  />
+                  <button class="btn btn-outline-secondary" type="button"
+                          onclick="togglePassword('editPassword', 'eyeEdit')"
+                          tabindex="-1" title="Mostra/nascondi password">
+                    <i class="fas fa-eye" id="eyeEdit"></i>
+                  </button>
+                </div>
                 <div class="password-strength" id="editPasswordStrength"></div>
                 <div class="password-requirements">
                   <small>
