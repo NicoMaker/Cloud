@@ -3,7 +3,11 @@
 // =============================================
 
 const { hashPassword, validatePassword } = require("../services/passwordUtils");
-const { countAdmins, canDeleteAdmin, canChangeAdminToUser } = require("../services/adminUtils");
+const {
+  countAdmins,
+  canDeleteAdmin,
+  canChangeAdminToUser,
+} = require("../services/adminUtils");
 
 function setupUserRoutes(app, db, forceLogoutUserEverywhere, requireAdmin) {
   // GET lista utenti
@@ -108,7 +112,10 @@ function setupUserRoutes(app, db, forceLogoutUserEverywhere, requireAdmin) {
       if (user.role === "admin" && role === "user") {
         canChangeAdminToUser(db, targetId, (canChangeErr, canChange) => {
           if (canChangeErr) {
-            console.error("Error checking admin change permission:", canChangeErr);
+            console.error(
+              "Error checking admin change permission:",
+              canChangeErr,
+            );
             return res.redirect("/admin.html?error=database_error");
           }
 
@@ -129,7 +136,8 @@ function setupUserRoutes(app, db, forceLogoutUserEverywhere, requireAdmin) {
         let query, params;
         if (password) {
           const hashedPassword = hashPassword(password);
-          query = "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
+          query =
+            "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
           params = [username, hashedPassword, role, targetId];
         } else {
           query = "UPDATE users SET username = ?, role = ? WHERE id = ?";
@@ -182,7 +190,10 @@ function setupUserRoutes(app, db, forceLogoutUserEverywhere, requireAdmin) {
       if (user.role === "admin") {
         canDeleteAdmin(db, id, (canDeleteErr, canDelete) => {
           if (canDeleteErr) {
-            console.error("Error checking admin delete permission:", canDeleteErr);
+            console.error(
+              "Error checking admin delete permission:",
+              canDeleteErr,
+            );
             return res.redirect("/admin.html?error=database_error");
           }
 

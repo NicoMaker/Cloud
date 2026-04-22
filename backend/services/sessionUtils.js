@@ -40,7 +40,13 @@ function destroyUserSessionsByUserId(app, userId, callback) {
   });
 }
 
-function forceLogoutUserEverywhere(io, app, userId, reason = "account_changed", callback) {
+function forceLogoutUserEverywhere(
+  io,
+  app,
+  userId,
+  reason = "account_changed",
+  callback,
+) {
   // 1. Prima distruggi le sessioni sul server
   destroyUserSessionsByUserId(app, userId, () => {
     // 2. Poi emetti forceLogout — il browser riceve l'evento e fa il redirect al login

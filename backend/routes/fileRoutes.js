@@ -5,7 +5,10 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const { validatePathTraversal, ensureUploadFolder } = require("../services/fileSystemUtils");
+const {
+  validatePathTraversal,
+  ensureUploadFolder,
+} = require("../services/fileSystemUtils");
 
 function setupFileRoutes(app, db, requireLogin) {
   const baseFolder = path.join(__dirname, "../../frontend/uploads");
@@ -94,7 +97,9 @@ function setupFileRoutes(app, db, requireLogin) {
   app.post("/upload", requireLogin, (req, res) => {
     try {
       if (!req.files || Object.keys(req.files).length === 0) {
-        return res.status(400).json({ success: false, message: "Nessun file caricato" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Nessun file caricato" });
       }
 
       let files = req.files.files;
@@ -103,7 +108,9 @@ function setupFileRoutes(app, db, requireLogin) {
         if (fileKeys.length > 0) files = req.files[fileKeys[0]];
       }
       if (!files) {
-        return res.status(400).json({ success: false, message: "Nessun file trovato" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Nessun file trovato" });
       }
 
       ensureUploadFolder(baseFolder);
@@ -111,7 +118,8 @@ function setupFileRoutes(app, db, requireLogin) {
       const fileArray = Array.isArray(files) ? files : [files];
       const uploadResults = [];
       let relativePaths = [];
-      const rawRelativePaths = req.body["relativePaths[]"] ?? req.body.relativePaths ?? null;
+      const rawRelativePaths =
+        req.body["relativePaths[]"] ?? req.body.relativePaths ?? null;
 
       if (Array.isArray(rawRelativePaths)) {
         relativePaths = rawRelativePaths.map((p) => String(p));
@@ -168,7 +176,9 @@ function setupFileRoutes(app, db, requireLogin) {
                 filename: file.name,
                 status: moveError ? "error" : "success",
                 error: moveError ? moveError.message : undefined,
-                savedAs: path.relative(baseFolder, targetFullPath).replace(/\\/g, "/"),
+                savedAs: path
+                  .relative(baseFolder, targetFullPath)
+                  .replace(/\\/g, "/"),
               });
               resolve();
             });
@@ -189,14 +199,21 @@ function setupFileRoutes(app, db, requireLogin) {
             });
           }
 
-          const successful = uploadResults.filter((r) => r.status === "success").length;
-          const failed = uploadResults.filter((r) => r.status === "error").length;
+          const successful = uploadResults.filter(
+            (r) => r.status === "success",
+          ).length;
+          const failed = uploadResults.filter(
+            (r) => r.status === "error",
+          ).length;
 
           return res.json({
             success: failed === 0,
             totalFiles: successful,
             results: uploadResults,
-            message: failed === 0 ? "Caricamento completato" : `Caricamento completato con ${failed} errori`,
+            message:
+              failed === 0
+                ? "Caricamento completato"
+                : `Caricamento completato con ${failed} errori`,
           });
         })
         .catch((error) => {

@@ -50,7 +50,9 @@ function setupZipRoutes(app, requireLogin) {
 
   // POST download zip visualizzazione corrente
   app.post("/api/download-current-view", requireLogin, (req, res) => {
-    const folderPath = req.body.folder ? path.join(baseFolder, req.body.folder) : baseFolder;
+    const folderPath = req.body.folder
+      ? path.join(baseFolder, req.body.folder)
+      : baseFolder;
 
     if (!validatePathTraversal(folderPath, baseFolder)) {
       return res.status(403).json({ error: "Accesso non consentito" });

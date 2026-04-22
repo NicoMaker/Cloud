@@ -4,7 +4,10 @@
 
 const fs = require("fs");
 const path = require("path");
-const { copyRecursive, validatePathTraversal } = require("../services/fileSystemUtils");
+const {
+  copyRecursive,
+  validatePathTraversal,
+} = require("../services/fileSystemUtils");
 
 function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
   const baseFolder = path.join(__dirname, "../../frontend/uploads");
@@ -14,39 +17,65 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
     const { oldPath, newName } = req.body;
 
     if (!oldPath || !newName) {
-      return res.status(400).json({ success: false, message: "Parametri mancanti" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Parametri mancanti" });
     }
 
-    if (newName.includes("/") || newName.includes("\\") || newName.includes("..")) {
-      return res.status(400).json({ success: false, message: "Nome non valido" });
+    if (
+      newName.includes("/") ||
+      newName.includes("\\") ||
+      newName.includes("..")
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Nome non valido" });
     }
 
     const oldFullPath = path.normalize(path.join(baseFolder, oldPath));
 
     if (!validatePathTraversal(oldFullPath, baseFolder)) {
-      return res.status(403).json({ success: false, message: "Percorso non consentito" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Percorso non consentito" });
     }
 
     if (!fs.existsSync(oldFullPath)) {
-      return res.status(404).json({ success: false, message: "File o cartella non trovato" });
+      return res
+        .status(404)
+        .json({ success: false, message: "File o cartella non trovato" });
     }
 
     const parentDir = path.dirname(oldFullPath);
     const newFullPath = path.join(parentDir, newName);
 
     if (!validatePathTraversal(newFullPath, baseFolder)) {
-      return res.status(403).json({ success: false, message: "Percorso destinazione non consentito" });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Percorso destinazione non consentito",
+        });
     }
 
     if (fs.existsSync(newFullPath)) {
-      return res.status(409).json({ success: false, message: "Esiste già un file o cartella con questo nome" });
+      return res
+        .status(409)
+        .json({
+          success: false,
+          message: "Esiste già un file o cartella con questo nome",
+        });
     }
 
     try {
       fs.renameSync(oldFullPath, newFullPath);
 
-      const oldRelPath = path.relative(baseFolder, oldFullPath).replace(/\\/g, "/");
-      const newRelPath = path.relative(baseFolder, newFullPath).replace(/\\/g, "/");
+      const oldRelPath = path
+        .relative(baseFolder, oldFullPath)
+        .replace(/\\/g, "/");
+      const newRelPath = path
+        .relative(baseFolder, newFullPath)
+        .replace(/\\/g, "/");
 
       db.run(
         "UPDATE file_uploads SET filepath = ?, filename = ? WHERE filepath = ?",
@@ -59,7 +88,12 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
       res.json({ success: true, newPath: newRelPath });
     } catch (error) {
       console.error("❌ Errore rinomina:", error);
-      res.status(500).json({ success: false, message: "Errore durante la rinomina: " + error.message });
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: "Errore durante la rinomina: " + error.message,
+        });
     }
   });
 
@@ -68,45 +102,84 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
     const { action, sourcePath, destFolder, newName } = req.body;
 
     if (!action || !sourcePath) {
-      return res.status(400).json({ success: false, message: "Parametri mancanti" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Parametri mancanti" });
     }
 
     if (!["copy", "move"].includes(action)) {
-      return res.status(400).json({ success: false, message: "Azione non valida (usare 'copy' o 'move')" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Azione non valida (usare 'copy' o 'move')",
+        });
     }
 
     const safeName = (newName || "").replace(/\\/g, "/").replace(/^\/+/, "");
     if (safeName.includes("..")) {
-      return res.status(400).json({ success: false, message: "Nome destinazione non valido" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Nome destinazione non valido" });
     }
 
     const srcFullPath = path.normalize(path.join(baseFolder, sourcePath));
     if (!validatePathTraversal(srcFullPath, baseFolder)) {
-      return res.status(403).json({ success: false, message: "Percorso sorgente non consentito" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Percorso sorgente non consentito" });
     }
 
     if (!fs.existsSync(srcFullPath)) {
-      return res.status(404).json({ success: false, message: "File o cartella sorgente non trovato" });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "File o cartella sorgente non trovato",
+        });
     }
 
     const originalName = path.basename(srcFullPath);
     const finalName = safeName || originalName;
 
-    const destFolderClean = (destFolder || "").replace(/\\/g, "/").replace(/^\/+/, "");
+    const destFolderClean = (destFolder || "")
+      .replace(/\\/g, "/")
+      .replace(/^\/+/, "");
     const destFullPath = path.normalize(
-      path.join(baseFolder, destFolderClean ? destFolderClean + "/" + finalName : finalName)
+      path.join(
+        baseFolder,
+        destFolderClean ? destFolderClean + "/" + finalName : finalName,
+      ),
     );
 
     if (!validatePathTraversal(destFullPath, baseFolder)) {
-      return res.status(403).json({ success: false, message: "Percorso destinazione non consentito" });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Percorso destinazione non consentito",
+        });
     }
 
-    if (destFullPath === srcFullPath || destFullPath.startsWith(srcFullPath + path.sep)) {
-      return res.status(400).json({ success: false, message: "Non puoi copiare/spostare una cartella dentro sé stessa" });
+    if (
+      destFullPath === srcFullPath ||
+      destFullPath.startsWith(srcFullPath + path.sep)
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Non puoi copiare/spostare una cartella dentro sé stessa",
+        });
     }
 
     if (fs.existsSync(destFullPath)) {
-      return res.status(409).json({ success: false, message: "Esiste già un elemento con questo nome nella destinazione" });
+      return res
+        .status(409)
+        .json({
+          success: false,
+          message: "Esiste già un elemento con questo nome nella destinazione",
+        });
     }
 
     const destDir = path.dirname(destFullPath);
@@ -117,12 +190,18 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
     try {
       if (action === "copy") {
         copyRecursive(srcFullPath, destFullPath);
-        console.log(`📋 Copiato: "${sourcePath}" → "${path.relative(baseFolder, destFullPath)}"`);
+        console.log(
+          `📋 Copiato: "${sourcePath}" → "${path.relative(baseFolder, destFullPath)}"`,
+        );
       } else {
         fs.renameSync(srcFullPath, destFullPath);
 
-        const oldRelPath = path.relative(baseFolder, srcFullPath).replace(/\\/g, "/");
-        const newRelPath = path.relative(baseFolder, destFullPath).replace(/\\/g, "/");
+        const oldRelPath = path
+          .relative(baseFolder, srcFullPath)
+          .replace(/\\/g, "/");
+        const newRelPath = path
+          .relative(baseFolder, destFullPath)
+          .replace(/\\/g, "/");
         db.run(
           "UPDATE file_uploads SET filepath = ?, filename = ? WHERE filepath = ?",
           [newRelPath, finalName, oldRelPath],
@@ -137,7 +216,12 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
       });
     } catch (error) {
       console.error(`❌ Errore ${action}:`, error);
-      res.status(500).json({ success: false, message: `Errore durante ${action === "copy" ? "la copia" : "lo spostamento"}: ${error.message}` });
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: `Errore durante ${action === "copy" ? "la copia" : "lo spostamento"}: ${error.message}`,
+        });
     }
   });
 
@@ -156,14 +240,18 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
     if (fs.existsSync(filePath)) {
       try {
         const stats = fs.statSync(filePath);
-        const relativePath = path.relative(baseFolder, filePath).replace(/\\/g, "/");
+        const relativePath = path
+          .relative(baseFolder, filePath)
+          .replace(/\\/g, "/");
 
         fs.rmSync(filePath, { recursive: true, force: true });
 
         if (stats.isFile()) {
           db.run("DELETE FROM file_uploads WHERE filepath = ?", [relativePath]);
         } else {
-          db.run("DELETE FROM file_uploads WHERE filepath LIKE ?", [`${relativePath}/%`]);
+          db.run("DELETE FROM file_uploads WHERE filepath LIKE ?", [
+            `${relativePath}/%`,
+          ]);
         }
 
         console.log(`✅ Eliminato: ${filePath}`);
@@ -171,7 +259,9 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
         res.json({ success: true, message: "Eliminazione completata" });
       } catch (error) {
         console.error("❌ Errore eliminazione:", error);
-        res.status(500).json({ error: "Delete failed", message: error.message });
+        res
+          .status(500)
+          .json({ error: "Delete failed", message: error.message });
       }
     } else {
       res.status(404).json({ error: "File not found" });
@@ -193,12 +283,20 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
         }
 
         console.log("🗑️  Eliminati tutti i file e dati");
-        io.emit("filesChanged", { action: "delete-all", timestamp: Date.now() });
-        res.json({ success: true, message: "Tutti i file e dati sono stati eliminati" });
+        io.emit("filesChanged", {
+          action: "delete-all",
+          timestamp: Date.now(),
+        });
+        res.json({
+          success: true,
+          message: "Tutti i file e dati sono stati eliminati",
+        });
       });
     } catch (error) {
       console.error("❌ Errore eliminazione completa:", error);
-      res.status(500).json({ error: "Delete all failed", message: error.message });
+      res
+        .status(500)
+        .json({ error: "Delete all failed", message: error.message });
     }
   });
 
@@ -206,7 +304,9 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
   app.post("/api/create-folder", requireLogin, (req, res) => {
     const folderRelPath = req.body?.path;
     if (!folderRelPath || folderRelPath.includes("..")) {
-      return res.status(400).json({ success: false, message: "Percorso non valido" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Percorso non valido" });
     }
 
     const fullPath = path.join(baseFolder, folderRelPath);
@@ -214,7 +314,10 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
     try {
       fs.mkdirSync(fullPath, { recursive: true });
       console.log("📁 Cartella creata:", fullPath);
-      io.emit("filesChanged", { action: "create-folder", timestamp: Date.now() });
+      io.emit("filesChanged", {
+        action: "create-folder",
+        timestamp: Date.now(),
+      });
       res.json({ success: true });
     } catch (err) {
       console.error("Errore creazione cartella:", err);
