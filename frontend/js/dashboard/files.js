@@ -94,11 +94,12 @@ function displayFiles(files, folderPath) {
         <i class="fas fa-copy"></i>
       </button>`;
 
-    const moveBtn = `
-      <button onclick="openMoveModal('${file.path}')"
+    const moveBtn = window.userRole === "admin"
+      ? `<button onclick="openMoveModal('${file.path}')"
               class="btn btn-sm btn-outline-warning" title="Sposta">
         <i class="fas fa-arrows-alt"></i>
-      </button>`;
+      </button>`
+      : "";
 
     const deleteBtn = window.userRole === "admin"
       ? `<button onclick="deleteItem('${file.path}', '${file.name}')"
