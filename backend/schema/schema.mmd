@@ -1,0 +1,18 @@
+erDiagram
+  users ||--o{ file_uploads : "carica"
+  users {
+    INTEGER id PK
+    TEXT username
+    TEXT password
+    TEXT role
+    DATETIME created_at
+    DATETIME last_login
+  }
+  file_uploads {
+    INTEGER id PK
+    TEXT filename
+    TEXT filepath
+    INTEGER filesize
+    DATETIME upload_date
+    INTEGER user_id FK
+  }
