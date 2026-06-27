@@ -11,14 +11,16 @@ if (error) {
   const errorMessage = document.getElementById("errorMessage");
 
   const messages = {
-    missing_fields:      "Compila tutti i campi richiesti",
+    missing_fields: "Compila tutti i campi richiesti",
     invalid_credentials: "Nome utente o password non corretti",
-    database_error:      "Errore del database. Riprova più tardi.",
-    weak_password:       "Password troppo debole. " + (urlParams.get("details") || ""),
-    session_expired:     "Sessione scaduta. Effettua nuovamente il login.",
-    auth_error:          "Errore di autenticazione. Riprova.",
-    credentials_changed: "Le tue credenziali sono state modificate. Accedi nuovamente.",
-    account_changed:     "Il tuo account è stato modificato. Accedi nuovamente.",
+    database_error: "Errore del database. Riprova più tardi.",
+    weak_password:
+      "Password troppo debole. " + (urlParams.get("details") || ""),
+    session_expired: "Sessione scaduta. Effettua nuovamente il login.",
+    auth_error: "Errore di autenticazione. Riprova.",
+    credentials_changed:
+      "Le tue credenziali sono state modificate. Accedi nuovamente.",
+    account_changed: "Il tuo account è stato modificato. Accedi nuovamente.",
   };
 
   errorMessage.textContent = messages[error] || "Errore di accesso";
@@ -31,7 +33,7 @@ if (error) {
 
 function togglePassword(inputId, iconId) {
   const input = document.getElementById(inputId);
-  const icon  = document.getElementById(iconId);
+  const icon = document.getElementById(iconId);
   if (!input || !icon) return;
 
   if (input.type === "password") {
@@ -58,19 +60,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function validateLoginPassword(password) {
   const requirements = {
-    length:  password.length >= 8,
-    upper:   /[A-Z]/.test(password),
-    lower:   /[a-z]/.test(password),
-    number:  /[0-9]/.test(password),
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
     special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
   };
 
   // Aggiorna indicatori requisiti
   const indicators = {
-    "req-length":  requirements.length,
-    "req-upper":   requirements.upper,
-    "req-lower":   requirements.lower,
-    "req-number":  requirements.number,
+    "req-length": requirements.length,
+    "req-upper": requirements.upper,
+    "req-lower": requirements.lower,
+    "req-number": requirements.number,
     "req-special": requirements.special,
   };
 

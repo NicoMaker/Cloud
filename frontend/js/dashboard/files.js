@@ -68,15 +68,16 @@ function displayFiles(files, folderPath) {
     const row = document.createElement("tr");
     row.className = "fade-in";
 
-    const icon     = getFileIcon(file);
-    const size     = file.type === "folder" ? "—" : formatFileSize(file.size);
+    const icon = getFileIcon(file);
+    const size = file.type === "folder" ? "—" : formatFileSize(file.size);
     const modified = new Date(file.modified).toLocaleDateString("it-IT");
 
-    const downloadBtn = file.type === "file"
-      ? `<a href="/download/${file.path}" class="dash-btn dash-btn-outline-success dash-btn-sm" title="Scarica file">
+    const downloadBtn =
+      file.type === "file"
+        ? `<a href="/download/${file.path}" class="dash-btn dash-btn-outline-success dash-btn-sm" title="Scarica file">
            <i class="fas fa-file-arrow-down"></i>
          </a>`
-      : "";
+        : "";
 
     const downloadZipBtn = `
       <button onclick="downloadItemAsZip('${file.path}','${file.name}')"
@@ -96,30 +97,33 @@ function displayFiles(files, folderPath) {
         <i class="fas fa-copy"></i>
       </button>`;
 
-    const moveBtn = window.userRole === "admin"
-      ? `<button onclick="openMoveModal('${file.path}')"
+    const moveBtn =
+      window.userRole === "admin"
+        ? `<button onclick="openMoveModal('${file.path}')"
                  class="dash-btn dash-btn-outline-warning dash-btn-sm" title="Sposta">
            <i class="fas fa-arrows-alt"></i>
          </button>`
-      : "";
+        : "";
 
-    const deleteBtn = window.userRole === "admin"
-      ? `<button onclick="deleteItem('${file.path}','${file.name}')"
+    const deleteBtn =
+      window.userRole === "admin"
+        ? `<button onclick="deleteItem('${file.path}','${file.name}')"
                  class="dash-btn dash-btn-outline-danger dash-btn-sm" title="Elimina">
            <i class="fas fa-trash"></i>
          </button>`
-      : "";
+        : "";
 
     row.innerHTML = `
       <td>
         <div class="file-icon-cell">
           <i class="${icon}" style="width:18px;text-align:center;font-size:.95rem;"></i>
-          ${file.type === "folder"
-            ? `<a href="#" onclick="loadFiles('${file.path}')" class="file-name-link">
+          ${
+            file.type === "folder"
+              ? `<a href="#" onclick="loadFiles('${file.path}')" class="file-name-link">
                  <strong>${file.name}</strong>
                  <i class="fas fa-chevron-right" style="font-size:.65rem;color:var(--text-3)"></i>
                </a>`
-            : `<span class="file-name-text">${file.name}</span>`
+              : `<span class="file-name-text">${file.name}</span>`
           }
         </div>
       </td>
@@ -149,7 +153,10 @@ function deleteItem(path, name) {
         showToast(`"${name}" eliminato`, "success");
         loadFiles(window.currentPath);
       } else {
-        showToast("Eliminazione fallita: " + (data.message || data.error), "error");
+        showToast(
+          "Eliminazione fallita: " + (data.message || data.error),
+          "error",
+        );
       }
     })
     .catch(() => showToast("Eliminazione fallita", "error"));
@@ -169,18 +176,26 @@ async function confirmDeleteAll() {
   const sessionValid = await checkSession();
   if (!sessionValid) return;
   if (window.userRole !== "admin") {
-    showToast("Solo gli amministratori possono eliminare tutti i file", "error");
+    showToast(
+      "Solo gli amministratori possono eliminare tutti i file",
+      "error",
+    );
     return;
   }
   try {
     const response = await fetch("/api/delete-all", {
       method: "DELETE",
-      headers: { "Accept": "application/json", "Content-Type": "application/json" },
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
       credentials: "same-origin",
     });
     if (response.status === 401) {
       showToast("Sessione scaduta. Reindirizzamento…", "error");
-      setTimeout(() => { window.location.href = "/login.html?error=session_expired"; }, 2000);
+      setTimeout(() => {
+        window.location.href = "/login.html?error=session_expired";
+      }, 2000);
       return;
     }
     if (response.status === 403) {
@@ -191,12 +206,17 @@ async function confirmDeleteAll() {
     if (data.success) {
       showToast(data.message, "success");
       loadFiles("");
-      const modal = bootstrap.Modal.getInstance(document.getElementById("deleteAllModal"));
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("deleteAllModal"),
+      );
       modal.hide();
       document.getElementById("confirmText").value = "";
       document.getElementById("confirmDeleteAll").disabled = true;
     } else {
-      showToast("Eliminazione fallita: " + (data.message || data.error), "error");
+      showToast(
+        "Eliminazione fallita: " + (data.message || data.error),
+        "error",
+      );
     }
   } catch (err) {
     showToast("Errore durante l'eliminazione", "error");
@@ -231,12 +251,18 @@ function updateBreadcrumb(path) {
 function getFileIcon(file) {
   if (file.type === "folder") return "fas fa-folder" + " " + "text-warning";
   const ext = file.name.split(".").pop().toLowerCase();
-  if (["jpg","jpeg","png","gif","bmp","svg","webp"].includes(ext)) return "fas fa-image text-success";
-  if (["pdf","doc","docx","txt","rtf","odt"].includes(ext))         return "fas fa-file-alt text-primary";
-  if (["zip","rar","7z","tar","gz","bz2"].includes(ext))            return "fas fa-file-zipper text-secondary";
-  if (["mp4","avi","mkv","mov","wmv","flv","webm"].includes(ext))   return "fas fa-file-video text-danger";
-  if (["mp3","wav","flac","aac","ogg","wma"].includes(ext))         return "fas fa-file-audio text-info";
-  if (["js","html","css","php","py","java","cpp","c"].includes(ext)) return "fas fa-file-code text-dark";
+  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext))
+    return "fas fa-image text-success";
+  if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(ext))
+    return "fas fa-file-alt text-primary";
+  if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext))
+    return "fas fa-file-zipper text-secondary";
+  if (["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(ext))
+    return "fas fa-file-video text-danger";
+  if (["mp3", "wav", "flac", "aac", "ogg", "wma"].includes(ext))
+    return "fas fa-file-audio text-info";
+  if (["js", "html", "css", "php", "py", "java", "cpp", "c"].includes(ext))
+    return "fas fa-file-code text-dark";
   return "fas fa-file text-muted";
 }
 

@@ -16,8 +16,11 @@ function openRenameModal(oldPath, type) {
 
   document.getElementById("renameModal").addEventListener(
     "shown.bs.modal",
-    () => { input.focus(); input.select(); },
-    { once: true }
+    () => {
+      input.focus();
+      input.select();
+    },
+    { once: true },
   );
 }
 
@@ -44,11 +47,16 @@ async function confirmRename() {
     const data = await response.json();
 
     if (data.success) {
-      bootstrap.Modal.getInstance(document.getElementById("renameModal")).hide();
+      bootstrap.Modal.getInstance(
+        document.getElementById("renameModal"),
+      ).hide();
       showToast(`Rinominato con successo in "${newName}"`, "success");
       loadFiles(window.currentPath);
     } else {
-      showToast("Errore durante la rinomina: " + (data.message || "Errore sconosciuto"), "error");
+      showToast(
+        "Errore durante la rinomina: " + (data.message || "Errore sconosciuto"),
+        "error",
+      );
     }
   } catch (err) {
     console.error("Errore rinomina:", err);
@@ -112,8 +120,13 @@ async function confirmCopyMove() {
     const data = await response.json();
 
     if (data.success) {
-      bootstrap.Modal.getInstance(document.getElementById("copyMoveModal")).hide();
-      showToast(`File/cartella ${action === "copy" ? "copiato" : "spostato"} con successo!`, "success");
+      bootstrap.Modal.getInstance(
+        document.getElementById("copyMoveModal"),
+      ).hide();
+      showToast(
+        `File/cartella ${action === "copy" ? "copiato" : "spostato"} con successo!`,
+        "success",
+      );
       loadFiles(window.currentPath);
     } else {
       showToast("Errore: " + (data.message || "Operazione fallita"), "error");
@@ -137,7 +150,9 @@ async function downloadItemAsZip(filePath, fileName) {
 
 async function downloadCurrentView() {
   try {
-    const folderName = window.currentPath ? window.currentPath.split("/").pop() : "files";
+    const folderName = window.currentPath
+      ? window.currentPath.split("/").pop()
+      : "files";
     showToast(`Preparazione download "${folderName}.zip"...`, "info");
 
     const response = await fetch("/api/download-current-view", {
@@ -183,7 +198,9 @@ function createNewFolder() {
     return;
   }
 
-  const fullPath = window.currentPath ? `${window.currentPath}/${folderName}` : folderName;
+  const fullPath = window.currentPath
+    ? `${window.currentPath}/${folderName}`
+    : folderName;
 
   fetch("/api/create-folder", {
     method: "POST",
@@ -197,8 +214,13 @@ function createNewFolder() {
         showToast(`Cartella "${folderName}" creata con successo!`, "success");
         loadFiles(window.currentPath);
       } else {
-        showToast("Errore: " + (data.message || "Impossibile creare la cartella."), "error");
+        showToast(
+          "Errore: " + (data.message || "Impossibile creare la cartella."),
+          "error",
+        );
       }
     })
-    .catch(() => showToast("Errore durante la creazione della cartella.", "error"));
+    .catch(() =>
+      showToast("Errore durante la creazione della cartella.", "error"),
+    );
 }

@@ -8,10 +8,10 @@ function showToast(message, type = "info") {
 
   const icons = {
     success: "fas fa-circle-check",
-    error:   "fas fa-circle-exclamation",
-    danger:  "fas fa-circle-exclamation",
+    error: "fas fa-circle-exclamation",
+    danger: "fas fa-circle-exclamation",
     warning: "fas fa-triangle-exclamation",
-    info:    "fas fa-circle-info",
+    info: "fas fa-circle-info",
   };
 
   const el = document.createElement("div");

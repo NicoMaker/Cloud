@@ -4,21 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard — Gestore File</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link href="css/dashboard.css" rel="stylesheet" />
     <link rel="icon" type="image/png" href="img/Logo.png" />
   </head>
   <body>
-
     <!-- ===== NAVBAR ===== -->
     <nav class="topbar">
       <div class="topbar-inner">
         <a class="topbar-brand" href="#">
-          <img src="img/Logo.png" alt="Logo" class="topbar-logo"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-          <i class="fas fa-shield-alt" style="display:none;"></i>
+          <img
+            src="img/Logo.png"
+            alt="Logo"
+            class="topbar-logo"
+            onerror="
+              this.style.display = 'none';
+              this.nextElementSibling.style.display = 'inline-block';
+            "
+          />
+          <i class="fas fa-shield-alt" style="display: none"></i>
           <span>Gestore File</span>
         </a>
 
@@ -27,21 +42,40 @@
             <i class="fas fa-circle-user"></i><span>Caricamento…</span>
           </div>
 
-          <a href="/admin.html" class="tb-btn tb-btn-ghost" id="adminBtn" style="display:none" title="Pannello Admin">
-            <i class="fas fa-users-cog"></i><span class="tb-btn-label">Admin</span>
+          <a
+            href="/admin.html"
+            class="tb-btn tb-btn-ghost"
+            id="adminBtn"
+            style="display: none"
+            title="Pannello Admin"
+          >
+            <i class="fas fa-users-cog"></i
+            ><span class="tb-btn-label">Admin</span>
           </a>
 
-          <button class="tb-btn tb-btn-ghost" onclick="downloadCurrentView()" title="Scarica ZIP">
-            <i class="fas fa-download"></i><span class="tb-btn-label">Scarica ZIP</span>
+          <button
+            class="tb-btn tb-btn-ghost"
+            onclick="downloadCurrentView()"
+            title="Scarica ZIP"
+          >
+            <i class="fas fa-download"></i
+            ><span class="tb-btn-label">Scarica ZIP</span>
           </button>
 
-          <button class="tb-btn tb-btn-danger" id="deleteAllBtn" style="display:none"
-            onclick="deleteAllFiles()" title="Elimina tutto">
-            <i class="fas fa-trash-alt"></i><span class="tb-btn-label">Elimina tutto</span>
+          <button
+            class="tb-btn tb-btn-danger"
+            id="deleteAllBtn"
+            style="display: none"
+            onclick="deleteAllFiles()"
+            title="Elimina tutto"
+          >
+            <i class="fas fa-trash-alt"></i
+            ><span class="tb-btn-label">Elimina tutto</span>
           </button>
 
           <a href="/logout" class="tb-btn tb-btn-ghost" title="Esci">
-            <i class="fas fa-sign-out-alt"></i><span class="tb-btn-label">Esci</span>
+            <i class="fas fa-sign-out-alt"></i
+            ><span class="tb-btn-label">Esci</span>
           </a>
         </div>
       </div>
@@ -49,10 +83,8 @@
 
     <!-- ===== MAIN ===== -->
     <main class="main-grid">
-
       <!-- ---- Pannello sinistro ---- -->
       <aside class="side-panel">
-
         <!-- Crea cartella -->
         <div class="panel-card">
           <div class="panel-card-header">
@@ -61,8 +93,16 @@
           </div>
           <div class="panel-card-body">
             <div class="input-row">
-              <input type="text" class="dash-input" id="newFolderName" placeholder="Nome cartella…" />
-              <button class="dash-btn dash-btn-success" onclick="createNewFolder()">
+              <input
+                type="text"
+                class="dash-input"
+                id="newFolderName"
+                placeholder="Nome cartella…"
+              />
+              <button
+                class="dash-btn dash-btn-success"
+                onclick="createNewFolder()"
+              >
                 <i class="fas fa-plus"></i>
               </button>
             </div>
@@ -77,61 +117,105 @@
           </div>
           <div class="panel-card-body">
             <form id="uploadForm" enctype="multipart/form-data">
-
-              <input type="file" id="fileInput" name="files" multiple style="display:none" />
-              <input type="file" id="folderInput" name="files" webkitdirectory multiple style="display:none" />
+              <input
+                type="file"
+                id="fileInput"
+                name="files"
+                multiple
+                style="display: none"
+              />
+              <input
+                type="file"
+                id="folderInput"
+                name="files"
+                webkitdirectory
+                multiple
+                style="display: none"
+              />
 
               <div class="upload-zone" id="uploadZone">
-                <div class="upload-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <div class="upload-zone-icon">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                </div>
                 <p class="upload-zone-title">Trascina qui i file</p>
                 <p class="upload-zone-sub">oppure scegli da:</p>
                 <div class="upload-btn-row">
-                  <button class="dash-btn dash-btn-primary" type="button" onclick="selectFiles()">
+                  <button
+                    class="dash-btn dash-btn-primary"
+                    type="button"
+                    onclick="selectFiles()"
+                  >
                     <i class="fas fa-file"></i> File
                   </button>
-                  <button class="dash-btn dash-btn-secondary" type="button" onclick="selectFolder()">
+                  <button
+                    class="dash-btn dash-btn-secondary"
+                    type="button"
+                    onclick="selectFolder()"
+                  >
                     <i class="fas fa-folder"></i> Cartella
                   </button>
                 </div>
               </div>
 
-              <div id="selectedFiles" class="selected-preview" style="display:none">
+              <div
+                id="selectedFiles"
+                class="selected-preview"
+                style="display: none"
+              >
                 <div class="selected-preview-header">
                   <i class="fas fa-list-ul"></i>
                   <span id="selectedCountLabel">File selezionati</span>
                 </div>
                 <div id="filesList" class="files-tree"></div>
                 <div class="upload-actions">
-                  <button type="button" class="dash-btn dash-btn-success w-100" onclick="startUpload()">
+                  <button
+                    type="button"
+                    class="dash-btn dash-btn-success w-100"
+                    onclick="startUpload()"
+                  >
                     <i class="fas fa-upload"></i> Carica
                   </button>
-                  <button type="button" class="dash-btn dash-btn-ghost w-100" onclick="clearSelection()">
+                  <button
+                    type="button"
+                    class="dash-btn dash-btn-ghost w-100"
+                    onclick="clearSelection()"
+                  >
                     <i class="fas fa-times"></i> Annulla
                   </button>
                 </div>
               </div>
 
-              <div id="uploadProgress" class="upload-progress-wrap" style="display:none"></div>
+              <div
+                id="uploadProgress"
+                class="upload-progress-wrap"
+                style="display: none"
+              ></div>
             </form>
           </div>
         </div>
-
       </aside>
 
       <!-- ---- Browser file ---- -->
       <section class="browser-panel">
         <div class="browser-header">
           <div class="browser-header-left">
-            <h2 class="browser-title"><i class="fas fa-folder-open"></i> File</h2>
+            <h2 class="browser-title">
+              <i class="fas fa-folder-open"></i> File
+            </h2>
             <nav aria-label="breadcrumb">
               <ol class="breadcrumb-custom" id="breadcrumb">
                 <li class="bc-item bc-active">
-                  <a href="#" onclick="loadFiles('')"><i class="fas fa-home"></i> Home</a>
+                  <a href="#" onclick="loadFiles('')"
+                    ><i class="fas fa-home"></i> Home</a
+                  >
                 </li>
               </ol>
             </nav>
           </div>
-          <button class="dash-btn dash-btn-ghost dash-btn-sm" onclick="refreshFiles()">
+          <button
+            class="dash-btn dash-btn-ghost dash-btn-sm"
+            onclick="refreshFiles()"
+          >
             <i class="fas fa-sync-alt"></i> Aggiorna
           </button>
         </div>
@@ -156,21 +240,29 @@
           </table>
         </div>
       </section>
-
     </main>
 
     <!-- ===== FOOTER ===== -->
     <footer class="site-footer">
       <div class="footer-inner">
         <div class="footer-brand">
-          <img src="img/Logo.png" alt="Logo" class="footer-logo"
-            onerror="this.style.display='none';">
+          <img
+            src="img/Logo.png"
+            alt="Logo"
+            class="footer-logo"
+            onerror="this.style.display = 'none'"
+          />
           <span id="footerCompanyName"></span>
         </div>
         <div class="footer-meta" id="footerInfo">
-          <span><i class="fas fa-id-card"></i> <span id="footerVat"></span></span>
+          <span
+            ><i class="fas fa-id-card"></i> <span id="footerVat"></span
+          ></span>
           <span class="footer-sep">·</span>
-          <span><i class="fas fa-map-marker-alt"></i> <span id="footerAddress"></span></span>
+          <span
+            ><i class="fas fa-map-marker-alt"></i>
+            <span id="footerAddress"></span
+          ></span>
         </div>
       </div>
     </footer>
@@ -182,22 +274,43 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-modern">
           <div class="modal-header modal-header-danger">
-            <h5 class="modal-title"><i class="fas fa-triangle-exclamation me-2"></i>Elimina tutto</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title">
+              <i class="fas fa-triangle-exclamation me-2"></i>Elimina tutto
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
           </div>
           <div class="modal-body">
             <div class="danger-notice">
               <i class="fas fa-exclamation-circle"></i>
               <div>
-                <strong>Attenzione!</strong> Questa azione è irreversibile e cancellerà tutti i file e le cartelle.
+                <strong>Attenzione!</strong> Questa azione è irreversibile e
+                cancellerà tutti i file e le cartelle.
               </div>
             </div>
-            <label class="field-label-modal">Digita <code>ELIMINA TUTTO</code> per confermare:</label>
-            <input type="text" class="dash-input mt-1" id="confirmText" placeholder="ELIMINA TUTTO" />
+            <label class="field-label-modal"
+              >Digita <code>ELIMINA TUTTO</code> per confermare:</label
+            >
+            <input
+              type="text"
+              class="dash-input mt-1"
+              id="confirmText"
+              placeholder="ELIMINA TUTTO"
+            />
           </div>
           <div class="modal-footer">
-            <button class="dash-btn dash-btn-ghost" data-bs-dismiss="modal">Annulla</button>
-            <button class="dash-btn dash-btn-danger" id="confirmDeleteAll" disabled onclick="confirmDeleteAll()">
+            <button class="dash-btn dash-btn-ghost" data-bs-dismiss="modal">
+              Annulla
+            </button>
+            <button
+              class="dash-btn dash-btn-danger"
+              id="confirmDeleteAll"
+              disabled
+              onclick="confirmDeleteAll()"
+            >
               <i class="fas fa-trash-alt"></i> Elimina tutto
             </button>
           </div>
@@ -211,17 +324,31 @@
         <div class="modal-content modal-modern">
           <div class="modal-header modal-header-brand">
             <h5 class="modal-title"><i class="fas fa-pen me-2"></i>Rinomina</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
           </div>
           <div class="modal-body">
             <input type="hidden" id="renameOldPath" />
             <input type="hidden" id="renameType" />
             <label class="field-label-modal">Nuovo nome</label>
-            <input type="text" class="dash-input mt-1" id="renameNewName" placeholder="Inserisci il nuovo nome…" autofocus />
-            <p class="field-hint">Non usare <code>/</code> o <code>..</code> nel nome.</p>
+            <input
+              type="text"
+              class="dash-input mt-1"
+              id="renameNewName"
+              placeholder="Inserisci il nuovo nome…"
+              autofocus
+            />
+            <p class="field-hint">
+              Non usare <code>/</code> o <code>..</code> nel nome.
+            </p>
           </div>
           <div class="modal-footer">
-            <button class="dash-btn dash-btn-ghost" data-bs-dismiss="modal">Annulla</button>
+            <button class="dash-btn dash-btn-ghost" data-bs-dismiss="modal">
+              Annulla
+            </button>
             <button class="dash-btn dash-btn-primary" onclick="confirmRename()">
               <i class="fas fa-check"></i> Rinomina
             </button>
@@ -235,22 +362,45 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-modern">
           <div class="modal-header modal-header-brand">
-            <h5 class="modal-title"><i class="fas fa-copy me-2"></i><span id="copyMoveTitle">Copia</span></h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <h5 class="modal-title">
+              <i class="fas fa-copy me-2"></i
+              ><span id="copyMoveTitle">Copia</span>
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
           </div>
           <div class="modal-body">
             <input type="hidden" id="copyMoveSourcePath" />
             <input type="hidden" id="copyMoveAction" />
             <label class="field-label-modal">Cartella destinazione</label>
-            <input type="text" class="dash-input mt-1" id="copyMoveDestFolder" placeholder="Percorso destinazione (vuoto = root)" />
+            <input
+              type="text"
+              class="dash-input mt-1"
+              id="copyMoveDestFolder"
+              placeholder="Percorso destinazione (vuoto = root)"
+            />
             <p class="field-hint">Lascia vuoto per la cartella root.</p>
             <label class="field-label-modal mt-2">Nome destinazione</label>
-            <input type="text" class="dash-input mt-1" id="copyMoveName" placeholder="Lascia vuoto per mantenere il nome originale" />
+            <input
+              type="text"
+              class="dash-input mt-1"
+              id="copyMoveName"
+              placeholder="Lascia vuoto per mantenere il nome originale"
+            />
           </div>
           <div class="modal-footer">
-            <button class="dash-btn dash-btn-ghost" data-bs-dismiss="modal">Annulla</button>
-            <button class="dash-btn dash-btn-primary" onclick="confirmCopyMove()">
-              <i class="fas fa-check"></i> <span id="confirmCopyMoveText">Copia</span>
+            <button class="dash-btn dash-btn-ghost" data-bs-dismiss="modal">
+              Annulla
+            </button>
+            <button
+              class="dash-btn dash-btn-primary"
+              onclick="confirmCopyMove()"
+            >
+              <i class="fas fa-check"></i>
+              <span id="confirmCopyMoveText">Copia</span>
             </button>
           </div>
         </div>

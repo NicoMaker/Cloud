@@ -8,7 +8,7 @@
 
 function togglePassword(inputId, iconId) {
   const input = document.getElementById(inputId);
-  const icon  = document.getElementById(iconId);
+  const icon = document.getElementById(iconId);
   if (!input || !icon) return;
 
   if (input.type === "password") {
@@ -32,7 +32,11 @@ function setupPasswordValidation() {
 
   if (passwordInput) {
     passwordInput.addEventListener("input", (e) =>
-      validatePasswordStrength(e.target.value, "passwordStrength", "createUserBtn"),
+      validatePasswordStrength(
+        e.target.value,
+        "passwordStrength",
+        "createUserBtn",
+      ),
     );
   }
 
@@ -43,15 +47,19 @@ function setupPasswordValidation() {
   }
 }
 
-function validatePasswordStrength(password, strengthElementId, buttonId = null) {
+function validatePasswordStrength(
+  password,
+  strengthElementId,
+  buttonId = null,
+) {
   const strengthElement = document.getElementById(strengthElementId);
   const button = buttonId ? document.getElementById(buttonId) : null;
 
   const requirements = {
-    length:  password.length >= 8,
-    upper:   /[A-Z]/.test(password),
-    lower:   /[a-z]/.test(password),
-    number:  /[0-9]/.test(password),
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
     special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
   };
 
@@ -73,16 +81,17 @@ function validatePasswordStrength(password, strengthElementId, buttonId = null) 
   }
 
   if (button) {
-    button.disabled = !Object.values(requirements).every(Boolean) || password.length === 0;
+    button.disabled =
+      !Object.values(requirements).every(Boolean) || password.length === 0;
   }
 }
 
 function updateRequirementIndicators(requirements) {
   const indicators = {
-    "req-length":  requirements.length,
-    "req-upper":   requirements.upper,
-    "req-lower":   requirements.lower,
-    "req-number":  requirements.number,
+    "req-length": requirements.length,
+    "req-upper": requirements.upper,
+    "req-lower": requirements.lower,
+    "req-number": requirements.number,
     "req-special": requirements.special,
   };
 
@@ -148,12 +157,13 @@ function loadUsers() {
                       onclick="editUser(${user.id}, '${user.username}', '${user.role}', ${!!user.canChangeRole})">
                 <i class="fas fa-pen"></i> Modifica
               </button>
-              ${user.canDelete
-                ? `<button class="admin-btn admin-btn-outline-danger admin-btn-sm"
+              ${
+                user.canDelete
+                  ? `<button class="admin-btn admin-btn-outline-danger admin-btn-sm"
                            onclick="deleteUser(${user.id}, '${user.username}')">
                      <i class="fas fa-trash"></i> Elimina
                    </button>`
-                : `<span style="color:var(--text-3);font-size:.78rem;display:flex;align-items:center;gap:.3rem;">
+                  : `<span style="color:var(--text-3);font-size:.78rem;display:flex;align-items:center;gap:.3rem;">
                      <i class="fas fa-shield-alt"></i> Protetto
                    </span>`
               }
@@ -247,21 +257,27 @@ function checkUrlParams() {
       user_updated: "Utente aggiornato con successo!",
       user_deleted: "Utente eliminato con successo!",
     };
-    showAlert(messages[success] || "Operazione completata con successo!", "success");
+    showAlert(
+      messages[success] || "Operazione completata con successo!",
+      "success",
+    );
   }
 
   if (error) {
     const messages = {
-      missing_fields:           "Compila tutti i campi richiesti.",
-      user_exists:              "Nome utente già esistente.",
-      update_failed:            "Errore nell'aggiornamento utente.",
-      delete_failed:            "Errore nell'eliminazione utente.",
+      missing_fields: "Compila tutti i campi richiesti.",
+      user_exists: "Nome utente già esistente.",
+      update_failed: "Errore nell'aggiornamento utente.",
+      delete_failed: "Errore nell'eliminazione utente.",
       cannot_delete_last_admin: "Non puoi eliminare l'ultimo amministratore.",
-      cannot_change_last_admin: "Non puoi cambiare il ruolo dell'ultimo amministratore.",
-      user_not_found:           "Utente non trovato.",
-      invalid_user_id:          "ID utente non valido.",
-      weak_password:            "Password troppo debole. " + (details ? decodeURIComponent(details) : "Controlla i requisiti."),
-      database_error:           "Errore del database. Riprova più tardi.",
+      cannot_change_last_admin:
+        "Non puoi cambiare il ruolo dell'ultimo amministratore.",
+      user_not_found: "Utente non trovato.",
+      invalid_user_id: "ID utente non valido.",
+      weak_password:
+        "Password troppo debole. " +
+        (details ? decodeURIComponent(details) : "Controlla i requisiti."),
+      database_error: "Errore del database. Riprova più tardi.",
     };
 
     showAlert(messages[error] || "Si è verificato un errore.", "danger");

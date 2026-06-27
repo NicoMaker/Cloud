@@ -23,7 +23,8 @@ function handleFolderSelection(e) {
     const relPath = file.webkitRelativePath;
     if (relPath && relPath.includes("/")) {
       const folder = relPath.split("/")[0];
-      if (!window.mainFolderNames.includes(folder)) window.mainFolderNames.push(folder);
+      if (!window.mainFolderNames.includes(folder))
+        window.mainFolderNames.push(folder);
     }
   });
   window.selectedFiles = files;
@@ -32,10 +33,10 @@ function handleFolderSelection(e) {
 }
 
 function displaySelectedFiles() {
-  const container   = document.getElementById("selectedFiles");
-  const countLabel  = document.getElementById("selectedCountLabel");
-  const filesList   = document.getElementById("filesList");
-  const uploadZone  = document.getElementById("uploadZone");
+  const container = document.getElementById("selectedFiles");
+  const countLabel = document.getElementById("selectedCountLabel");
+  const filesList = document.getElementById("filesList");
+  const uploadZone = document.getElementById("uploadZone");
 
   if (!window.selectedFiles.length) {
     container.style.display = "none";
@@ -45,7 +46,8 @@ function displaySelectedFiles() {
 
   // Aggiorna etichetta conteggio
   const count = window.selectedFiles.length;
-  if (countLabel) countLabel.textContent = `${count} file selezionat${count === 1 ? "o" : "i"}`;
+  if (countLabel)
+    countLabel.textContent = `${count} file selezionat${count === 1 ? "o" : "i"}`;
 
   // Nascondi zona drop e mostra preview
   uploadZone.style.display = "none";
@@ -60,7 +62,8 @@ function displaySelectedFiles() {
   const tree = {};
   window.selectedFiles.forEach((file) => {
     let relPath = file.webkitRelativePath || file.name;
-    if (rootFolder && !relPath.startsWith(rootFolder)) relPath = rootFolder + "/" + relPath;
+    if (rootFolder && !relPath.startsWith(rootFolder))
+      relPath = rootFolder + "/" + relPath;
     const parts = relPath.split("/");
     let node = tree;
     for (let i = 0; i < parts.length; i++) {
@@ -133,7 +136,7 @@ async function startUpload() {
   }, 300);
 
   const formData = new FormData();
-  const allFolders   = new Set();
+  const allFolders = new Set();
   const relativePaths = [];
 
   window.selectedFiles.forEach((file) => {
@@ -144,7 +147,8 @@ async function startUpload() {
     formData.append("files", file, relPath);
     formData.append("relativePaths[]", relPath);
     const parts = relPath.split("/");
-    for (let i = 1; i < parts.length; i++) allFolders.add(parts.slice(0, i).join("/"));
+    for (let i = 1; i < parts.length; i++)
+      allFolders.add(parts.slice(0, i).join("/"));
   });
 
   formData.append("relativePaths", JSON.stringify(relativePaths));
@@ -162,16 +166,23 @@ async function startUpload() {
 
     const bar = document.getElementById("progressBar");
     if (bar) bar.style.width = "100%";
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 400));
 
     if (!response.ok || !data.success) {
-      showToast("Errore caricamento: " + (data.message || data.error || "Errore sconosciuto"), "danger");
+      showToast(
+        "Errore caricamento: " +
+          (data.message || data.error || "Errore sconosciuto"),
+        "danger",
+      );
       progressWrap.style.display = "none";
       document.getElementById("uploadZone").style.display = "block";
       return;
     }
 
-    showToast(`✅ ${data.totalFiles || 0} file caricati con successo!`, "success");
+    showToast(
+      `✅ ${data.totalFiles || 0} file caricati con successo!`,
+      "success",
+    );
     clearSelection();
     loadFiles(window.currentPath);
   } catch (error) {
@@ -186,10 +197,10 @@ async function startUpload() {
 
 function clearSelection() {
   window.selectedFiles = [];
-  document.getElementById("fileInput").value   = "";
+  document.getElementById("fileInput").value = "";
   document.getElementById("folderInput").value = "";
-  document.getElementById("selectedFiles").style.display   = "none";
+  document.getElementById("selectedFiles").style.display = "none";
   document.getElementById("uploadProgress").style.display = "none";
-  document.getElementById("filesList").innerHTML           = "";
-  document.getElementById("uploadZone").style.display     = "block";
+  document.getElementById("filesList").innerHTML = "";
+  document.getElementById("uploadZone").style.display = "block";
 }

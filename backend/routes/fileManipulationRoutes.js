@@ -50,21 +50,17 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
     const newFullPath = path.join(parentDir, newName);
 
     if (!validatePathTraversal(newFullPath, baseFolder)) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Percorso destinazione non consentito",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Percorso destinazione non consentito",
+      });
     }
 
     if (fs.existsSync(newFullPath)) {
-      return res
-        .status(409)
-        .json({
-          success: false,
-          message: "Esiste già un file o cartella con questo nome",
-        });
+      return res.status(409).json({
+        success: false,
+        message: "Esiste già un file o cartella con questo nome",
+      });
     }
 
     try {
@@ -88,12 +84,10 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
       res.json({ success: true, newPath: newRelPath });
     } catch (error) {
       console.error("❌ Errore rinomina:", error);
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: "Errore durante la rinomina: " + error.message,
-        });
+      res.status(500).json({
+        success: false,
+        message: "Errore durante la rinomina: " + error.message,
+      });
     }
   });
 
@@ -108,12 +102,10 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
     }
 
     if (!["copy", "move"].includes(action)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Azione non valida (usare 'copy' o 'move')",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Azione non valida (usare 'copy' o 'move')",
+      });
     }
 
     const safeName = (newName || "").replace(/\\/g, "/").replace(/^\/+/, "");
@@ -131,12 +123,10 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
     }
 
     if (!fs.existsSync(srcFullPath)) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "File o cartella sorgente non trovato",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "File o cartella sorgente non trovato",
+      });
     }
 
     const originalName = path.basename(srcFullPath);
@@ -153,33 +143,27 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
     );
 
     if (!validatePathTraversal(destFullPath, baseFolder)) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Percorso destinazione non consentito",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Percorso destinazione non consentito",
+      });
     }
 
     if (
       destFullPath === srcFullPath ||
       destFullPath.startsWith(srcFullPath + path.sep)
     ) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Non puoi copiare/spostare una cartella dentro sé stessa",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Non puoi copiare/spostare una cartella dentro sé stessa",
+      });
     }
 
     if (fs.existsSync(destFullPath)) {
-      return res
-        .status(409)
-        .json({
-          success: false,
-          message: "Esiste già un elemento con questo nome nella destinazione",
-        });
+      return res.status(409).json({
+        success: false,
+        message: "Esiste già un elemento con questo nome nella destinazione",
+      });
     }
 
     const destDir = path.dirname(destFullPath);
@@ -216,12 +200,10 @@ function setupFileManipulationRoutes(app, db, io, requireLogin, requireAdmin) {
       });
     } catch (error) {
       console.error(`❌ Errore ${action}:`, error);
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: `Errore durante ${action === "copy" ? "la copia" : "lo spostamento"}: ${error.message}`,
-        });
+      res.status(500).json({
+        success: false,
+        message: `Errore durante ${action === "copy" ? "la copia" : "lo spostamento"}: ${error.message}`,
+      });
     }
   });
 
