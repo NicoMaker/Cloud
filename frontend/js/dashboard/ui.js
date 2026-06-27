@@ -1,43 +1,37 @@
 // =============================================
-//  UI UTILITIES - TOAST & NOTIFICHE
+//  UI UTILITIES — Toast notifiche moderne
 // =============================================
 
 function showToast(message, type = "info") {
-  const toastContainer = document.getElementById("toastContainer");
-  const toastId = "toast-" + Date.now();
+  const container = document.getElementById("toastContainer");
+  const id = "toast-" + Date.now();
 
-  const toastColors = {
-    success: "text-bg-success",
-    error:   "text-bg-danger",
-    danger:  "text-bg-danger",
-    warning: "text-bg-warning",
-    info:    "text-bg-info",
+  const icons = {
+    success: "fas fa-circle-check",
+    error:   "fas fa-circle-exclamation",
+    danger:  "fas fa-circle-exclamation",
+    warning: "fas fa-triangle-exclamation",
+    info:    "fas fa-circle-info",
   };
 
-  const toastIcons = {
-    success: "fas fa-check-circle",
-    error:   "fas fa-exclamation-triangle",
-    danger:  "fas fa-exclamation-triangle",
-    warning: "fas fa-exclamation-circle",
-    info:    "fas fa-info-circle",
-  };
-
-  const toastEl = document.createElement("div");
-  toastEl.id = toastId;
-  toastEl.className = `toast ${toastColors[type] || toastColors.info}`;
-  toastEl.setAttribute("role", "alert");
-  toastEl.innerHTML = `
-    <div class="toast-header">
-        <i class="${toastIcons[type] || toastIcons.info} me-2"></i>
-        <strong class="me-auto">Gestore File</strong>
-        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-    </div>
-    <div class="toast-body">${message}</div>
+  const el = document.createElement("div");
+  el.id = id;
+  el.className = `toast-item toast-${type === "danger" ? "danger" : type}`;
+  el.innerHTML = `
+    <i class="${icons[type] || icons.info}"></i>
+    <span style="flex:1">${message}</span>
+    <button class="toast-close" onclick="this.closest('.toast-item').remove()">
+      <i class="fas fa-xmark"></i>
+    </button>
   `;
 
-  toastContainer.appendChild(toastEl);
-  const toast = new bootstrap.Toast(toastEl);
-  toast.show();
+  container.appendChild(el);
 
-  toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
+  // Auto remove after 4 seconds
+  setTimeout(() => {
+    el.style.opacity = "0";
+    el.style.transform = "translateX(40px)";
+    el.style.transition = "opacity .3s ease, transform .3s ease";
+    setTimeout(() => el.remove(), 300);
+  }, 4000);
 }

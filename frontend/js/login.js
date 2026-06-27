@@ -77,28 +77,25 @@ function validateLoginPassword(password) {
   Object.entries(indicators).forEach(([id, valid]) => {
     const el = document.getElementById(id);
     if (el) {
-      el.style.color = valid ? "#28a745" : "#6c757d";
-      el.innerHTML = (valid ? "✓ " : "• ") + el.textContent.replace(/^[✓•] /, "");
+      el.classList.toggle("valid", valid);
     }
   });
 
   // Aggiorna barra forza password
   const strengthEl = document.getElementById("loginPasswordStrength");
   if (!strengthEl) return;
+  if (!strengthEl) return;
 
   const validCount = Object.values(requirements).filter(Boolean).length;
 
   if (password.length === 0) {
     strengthEl.style.width = "0%";
-    strengthEl.className = "password-strength";
+    strengthEl.className = "pw-strength-fill";
   } else if (validCount < 3) {
-    strengthEl.style.width = "33%";
-    strengthEl.className = "password-strength strength-weak";
+    strengthEl.className = "pw-strength-fill strength-weak";
   } else if (validCount < 5) {
-    strengthEl.style.width = "66%";
-    strengthEl.className = "password-strength strength-medium";
+    strengthEl.className = "pw-strength-fill strength-medium";
   } else {
-    strengthEl.style.width = "100%";
-    strengthEl.className = "password-strength strength-strong";
+    strengthEl.className = "pw-strength-fill strength-strong";
   }
 }

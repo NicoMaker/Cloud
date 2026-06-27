@@ -1,5 +1,5 @@
 // =============================================
-//  BROWSER FILE - CARICAMENTO & VISUALIZZAZIONE
+//  BROWSER FILE — Caricamento & visualizzazione
 // =============================================
 
 function loadFiles(folderPath) {
@@ -8,17 +8,15 @@ function loadFiles(folderPath) {
 
   const fileList = document.getElementById("fileList");
   fileList.innerHTML =
-    '<tr><td colspan="4" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Caricamento...</td></tr>';
+    '<tr><td colspan="4" class="table-placeholder"><i class="fas fa-spinner fa-spin"></i> Caricamento…</td></tr>';
 
   fetch(`/api/files?folder=${encodeURIComponent(folderPath)}`)
     .then((res) => res.json())
-    .then((files) => {
-      displayFiles(files, folderPath);
-    })
+    .then((files) => displayFiles(files, folderPath))
     .catch((err) => {
-      console.error("Errore nel caricamento file:", err);
+      console.error("Errore caricamento file:", err);
       fileList.innerHTML =
-        '<tr><td colspan="4" class="text-center text-danger py-4">Errore nel caricamento file</td></tr>';
+        '<tr><td colspan="4" class="table-placeholder" style="color:#ef4444"><i class="fas fa-circle-exclamation me-2"></i>Errore nel caricamento file</td></tr>';
     });
 }
 
@@ -26,19 +24,23 @@ function displayFiles(files, folderPath) {
   const fileList = document.getElementById("fileList");
   fileList.innerHTML = "";
 
-  // Riga "torna indietro"
+  // Riga torna indietro
   if (folderPath !== "") {
     const parentPath = folderPath.split("/").slice(0, -1).join("/");
     const row = document.createElement("tr");
     row.className = "fade-in";
     row.innerHTML = `
       <td>
-          <i class="fas fa-level-up-alt file-icon text-secondary"></i>
-          <a href="#" onclick="loadFiles('${parentPath}')" class="text-decoration-none">
-              <strong>.. (Directory Padre)</strong>
+        <div class="file-icon-cell">
+          <i class="fas fa-level-up-alt" style="color:var(--text-3);width:18px;text-align:center"></i>
+          <a href="#" onclick="loadFiles('${parentPath}')" class="file-name-link">
+            <strong>.. (Directory Padre)</strong>
           </a>
+        </div>
       </td>
-      <td>-</td><td>-</td><td>-</td>
+      <td class="file-size">—</td>
+      <td class="file-date">—</td>
+      <td>—</td>
     `;
     fileList.appendChild(row);
   }
@@ -47,10 +49,10 @@ function displayFiles(files, folderPath) {
   if (files.length === 0 && folderPath === "") {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td colspan="4" class="text-center text-muted py-5">
-          <i class="fas fa-folder-open fa-3x mb-3 text-muted"></i>
-          <br><strong>Nessun file caricato</strong>
-          <br><small>Inizia caricando alcuni file o cartelle!</small>
+      <td colspan="4" class="table-placeholder" style="padding:4rem 1rem;">
+        <i class="fas fa-folder-open" style="font-size:2.5rem;color:var(--text-3);display:block;margin-bottom:.75rem;"></i>
+        <strong style="color:var(--text-2)">Nessun file caricato</strong><br>
+        <span style="font-size:.82rem;color:var(--text-3)">Trascina file nel pannello a sinistra per iniziare</span>
       </td>
     `;
     fileList.appendChild(row);
@@ -64,63 +66,65 @@ function displayFiles(files, folderPath) {
 
   files.forEach((file) => {
     const row = document.createElement("tr");
-    row.className = "fade-in file-row";
+    row.className = "fade-in";
 
-    const icon = getFileIcon(file);
-    const size = file.type === "folder" ? "-" : formatFileSize(file.size);
+    const icon     = getFileIcon(file);
+    const size     = file.type === "folder" ? "—" : formatFileSize(file.size);
     const modified = new Date(file.modified).toLocaleDateString("it-IT");
 
     const downloadBtn = file.type === "file"
-      ? `<a href="/download/${file.path}" class="btn btn-sm btn-outline-success" title="Scarica file">
-           <i class="fas fa-file-download"></i>
+      ? `<a href="/download/${file.path}" class="dash-btn dash-btn-outline-success dash-btn-sm" title="Scarica file">
+           <i class="fas fa-file-arrow-down"></i>
          </a>`
       : "";
 
     const downloadZipBtn = `
-      <button onclick="downloadItemAsZip('${file.path}', '${file.name}')"
-              class="btn btn-sm btn-outline-info" title="Scarica come ZIP">
+      <button onclick="downloadItemAsZip('${file.path}','${file.name}')"
+              class="dash-btn dash-btn-outline-info dash-btn-sm" title="Scarica come ZIP">
         <i class="fas fa-download"></i>
       </button>`;
 
     const renameBtn = `
-      <button onclick="openRenameModal('${file.path}', '${file.type}')"
-              class="btn btn-sm btn-outline-secondary" title="Rinomina">
+      <button onclick="openRenameModal('${file.path}','${file.type}')"
+              class="dash-btn dash-btn-outline-secondary dash-btn-sm" title="Rinomina">
         <i class="fas fa-pen"></i>
       </button>`;
 
     const copyBtn = `
       <button onclick="openCopyModal('${file.path}')"
-              class="btn btn-sm btn-outline-primary" title="Copia">
+              class="dash-btn dash-btn-outline-primary dash-btn-sm" title="Copia">
         <i class="fas fa-copy"></i>
       </button>`;
 
     const moveBtn = window.userRole === "admin"
       ? `<button onclick="openMoveModal('${file.path}')"
-              class="btn btn-sm btn-outline-warning" title="Sposta">
-        <i class="fas fa-arrows-alt"></i>
-      </button>`
+                 class="dash-btn dash-btn-outline-warning dash-btn-sm" title="Sposta">
+           <i class="fas fa-arrows-alt"></i>
+         </button>`
       : "";
 
     const deleteBtn = window.userRole === "admin"
-      ? `<button onclick="deleteItem('${file.path}', '${file.name}')"
-                 class="btn btn-sm btn-outline-danger" title="Elimina">
+      ? `<button onclick="deleteItem('${file.path}','${file.name}')"
+                 class="dash-btn dash-btn-outline-danger dash-btn-sm" title="Elimina">
            <i class="fas fa-trash"></i>
          </button>`
       : "";
 
     row.innerHTML = `
       <td>
-          <i class="${icon} file-icon me-2"></i>
+        <div class="file-icon-cell">
+          <i class="${icon}" style="width:18px;text-align:center;font-size:.95rem;"></i>
           ${file.type === "folder"
-            ? `<a href="#" onclick="loadFiles('${file.path}')" class="text-decoration-none folder-link">
+            ? `<a href="#" onclick="loadFiles('${file.path}')" class="file-name-link">
                  <strong>${file.name}</strong>
-                 <i class="fas fa-chevron-right ms-1 text-muted small"></i>
+                 <i class="fas fa-chevron-right" style="font-size:.65rem;color:var(--text-3)"></i>
                </a>`
-            : `<span class="file-name">${file.name}</span>`
+            : `<span class="file-name-text">${file.name}</span>`
           }
+        </div>
       </td>
-      <td><span class="text-muted">${size}</span></td>
-      <td><span class="text-muted small">${modified}</span></td>
+      <td class="file-size">${size}</td>
+      <td class="file-date">${modified}</td>
       <td>
         <div class="file-actions">
           ${downloadBtn}${downloadZipBtn}${renameBtn}${copyBtn}${moveBtn}${deleteBtn}
@@ -138,12 +142,11 @@ function refreshFiles() {
 
 function deleteItem(path, name) {
   if (!confirm(`Sei sicuro di voler eliminare "${name}"?`)) return;
-
   fetch(`/api/delete/${path}`, { method: "DELETE" })
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        showToast(`"${name}" eliminato con successo`, "success");
+        showToast(`"${name}" eliminato`, "success");
         loadFiles(window.currentPath);
       } else {
         showToast("Eliminazione fallita: " + (data.message || data.error), "error");
@@ -163,32 +166,27 @@ async function confirmDeleteAll() {
     showToast("Testo di conferma non corretto", "error");
     return;
   }
-
   const sessionValid = await checkSession();
   if (!sessionValid) return;
-
   if (window.userRole !== "admin") {
     showToast("Solo gli amministratori possono eliminare tutti i file", "error");
     return;
   }
-
   try {
     const response = await fetch("/api/delete-all", {
       method: "DELETE",
       headers: { "Accept": "application/json", "Content-Type": "application/json" },
       credentials: "same-origin",
     });
-
     if (response.status === 401) {
-      showToast("Sessione scaduta. Reindirizzamento al login...", "error");
+      showToast("Sessione scaduta. Reindirizzamento…", "error");
       setTimeout(() => { window.location.href = "/login.html?error=session_expired"; }, 2000);
       return;
     }
     if (response.status === 403) {
-      showToast("Accesso negato. Solo gli amministratori possono eliminare tutti i file.", "error");
+      showToast("Accesso negato.", "error");
       return;
     }
-
     const data = await response.json();
     if (data.success) {
       showToast(data.message, "success");
@@ -201,19 +199,18 @@ async function confirmDeleteAll() {
       showToast("Eliminazione fallita: " + (data.message || data.error), "error");
     }
   } catch (err) {
-    console.error("Errore eliminazione totale:", err);
     showToast("Errore durante l'eliminazione", "error");
   }
 }
 
 // =============================================
-//  UTILITÀ FILE
+//  UTILITÀ
 // =============================================
 
 function updateBreadcrumb(path) {
   const breadcrumb = document.getElementById("breadcrumb");
   breadcrumb.innerHTML =
-    '<li class="breadcrumb-item"><a href="#" onclick="loadFiles(\'\')"><i class="fas fa-home me-1"></i>Home</a></li>';
+    '<li class="bc-item bc-active"><a href="#" onclick="loadFiles(\'\')"><i class="fas fa-home"></i> Home</a></li>';
 
   if (path) {
     const parts = path.split("/");
@@ -222,9 +219,9 @@ function updateBreadcrumb(path) {
       builtPath += (index > 0 ? "/" : "") + part;
       const isLast = index === parts.length - 1;
       const li = document.createElement("li");
-      li.className = `breadcrumb-item ${isLast ? "active" : ""}`;
+      li.className = `bc-item ${isLast ? "bc-active" : ""}`;
       li.innerHTML = isLast
-        ? `<span class="text-muted">${part}</span>`
+        ? `<span>${part}</span>`
         : `<a href="#" onclick="loadFiles('${builtPath}')">${part}</a>`;
       breadcrumb.appendChild(li);
     });
@@ -232,21 +229,21 @@ function updateBreadcrumb(path) {
 }
 
 function getFileIcon(file) {
-  if (file.type === "folder") return "fas fa-folder text-warning";
+  if (file.type === "folder") return "fas fa-folder" + " " + "text-warning";
   const ext = file.name.split(".").pop().toLowerCase();
   if (["jpg","jpeg","png","gif","bmp","svg","webp"].includes(ext)) return "fas fa-image text-success";
-  if (["pdf","doc","docx","txt","rtf","odt"].includes(ext)) return "fas fa-file-alt text-primary";
-  if (["zip","rar","7z","tar","gz","bz2"].includes(ext)) return "fas fa-file-archive text-secondary";
-  if (["mp4","avi","mkv","mov","wmv","flv","webm"].includes(ext)) return "fas fa-file-video text-danger";
-  if (["mp3","wav","flac","aac","ogg","wma"].includes(ext)) return "fas fa-file-audio text-info";
+  if (["pdf","doc","docx","txt","rtf","odt"].includes(ext))         return "fas fa-file-alt text-primary";
+  if (["zip","rar","7z","tar","gz","bz2"].includes(ext))            return "fas fa-file-zipper text-secondary";
+  if (["mp4","avi","mkv","mov","wmv","flv","webm"].includes(ext))   return "fas fa-file-video text-danger";
+  if (["mp3","wav","flac","aac","ogg","wma"].includes(ext))         return "fas fa-file-audio text-info";
   if (["js","html","css","php","py","java","cpp","c"].includes(ext)) return "fas fa-file-code text-dark";
   return "fas fa-file text-muted";
 }
 
 function formatFileSize(bytes) {
-  if (bytes === 0) return "0 Byte";
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ["Byte", "KB", "MB", "GB", "TB"];
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }

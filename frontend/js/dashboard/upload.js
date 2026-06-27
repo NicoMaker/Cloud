@@ -23,9 +23,7 @@ function handleFolderSelection(e) {
     const relPath = file.webkitRelativePath;
     if (relPath && relPath.includes("/")) {
       const folder = relPath.split("/")[0];
-      if (!window.mainFolderNames.includes(folder)) {
-        window.mainFolderNames.push(folder);
-      }
+      if (!window.mainFolderNames.includes(folder)) window.mainFolderNames.push(folder);
     }
   });
   window.selectedFiles = files;
@@ -34,29 +32,35 @@ function handleFolderSelection(e) {
 }
 
 function displaySelectedFiles() {
-  const container = document.getElementById("selectedFiles");
-  const filesList = document.getElementById("filesList");
+  const container   = document.getElementById("selectedFiles");
+  const countLabel  = document.getElementById("selectedCountLabel");
+  const filesList   = document.getElementById("filesList");
+  const uploadZone  = document.getElementById("uploadZone");
 
   if (!window.selectedFiles.length) {
     container.style.display = "none";
+    uploadZone.style.display = "block";
     return;
   }
 
+  // Aggiorna etichetta conteggio
+  const count = window.selectedFiles.length;
+  if (countLabel) countLabel.textContent = `${count} file selezionat${count === 1 ? "o" : "i"}`;
+
+  // Nascondi zona drop e mostra preview
+  uploadZone.style.display = "none";
+  container.style.display = "block";
+
+  // Costruisce albero
   let rootFolder = "";
-  if (
-    window.selectedFiles[0].webkitRelativePath &&
-    window.selectedFiles[0].webkitRelativePath.includes("/")
-  ) {
+  if (window.selectedFiles[0].webkitRelativePath?.includes("/")) {
     rootFolder = window.selectedFiles[0].webkitRelativePath.split("/")[0];
   }
 
-  // Costruisce albero per anteprima
   const tree = {};
   window.selectedFiles.forEach((file) => {
     let relPath = file.webkitRelativePath || file.name;
-    if (rootFolder && !relPath.startsWith(rootFolder)) {
-      relPath = rootFolder + "/" + relPath;
-    }
+    if (rootFolder && !relPath.startsWith(rootFolder)) relPath = rootFolder + "/" + relPath;
     const parts = relPath.split("/");
     let node = tree;
     for (let i = 0; i < parts.length; i++) {
@@ -72,32 +76,34 @@ function displaySelectedFiles() {
   });
 
   function renderTree(node, level = 0) {
-    let html = `<ul style="margin-left:${level * 20}px">`;
+    let html = `<ul style="margin-left:${level * 14}px;list-style:none;padding:0;">`;
     for (const key in node) {
       if (key === "files") {
         node.files.forEach((f) => {
-          html += `<li><i class='fas fa-file'></i> ${f}</li>`;
+          html += `<li style="display:flex;align-items:center;gap:.35rem;padding:.1rem 0;">
+                     <i class="fas fa-file" style="color:var(--text-3);font-size:.7rem;width:12px;"></i>
+                     <span>${f}</span>
+                   </li>`;
         });
       } else {
-        html += `<li><i class='fas fa-folder'></i> <b>${key}</b>`;
-        html += renderTree(node[key], level + 1);
-        html += "</li>";
+        html += `<li style="display:flex;flex-direction:column;gap:0;padding:.1rem 0;">
+                   <span style="display:flex;align-items:center;gap:.35rem;font-weight:600;color:#2563eb;">
+                     <i class="fas fa-folder" style="font-size:.7rem;width:12px;"></i>${key}
+                   </span>
+                   ${renderTree(node[key], level + 1)}
+                 </li>`;
       }
     }
     html += "</ul>";
     return html;
   }
 
-  filesList.innerHTML = `
-    <div class="mb-2"><b>Anteprima struttura che verrà caricata:</b></div>
-    ${renderTree(tree)}
-  `;
-  container.style.display = "block";
+  filesList.innerHTML = renderTree(tree);
 }
 
 async function startUpload() {
   if (!window.selectedFiles.length) {
-    showToast("Seleziona file o cartelle prima di caricare", "warning");
+    showToast("Seleziona file prima di caricare", "warning");
     return;
   }
   if (window.isUploading) {
@@ -106,23 +112,39 @@ async function startUpload() {
   }
   window.isUploading = true;
 
+  const progressWrap = document.getElementById("uploadProgress");
+  const selectedFiles = document.getElementById("selectedFiles");
+  selectedFiles.style.display = "none";
+  progressWrap.style.display = "block";
+  progressWrap.innerHTML = `
+    <div style="font-size:.82rem;font-weight:600;color:var(--brand);margin-bottom:.5rem;">
+      <i class="fas fa-upload me-1"></i> Caricamento in corso…
+    </div>
+    <div class="progress-modern"><div class="progress-modern-bar" id="progressBar" style="width:0%"></div></div>
+    <div style="font-size:.75rem;color:var(--text-3);margin-top:.35rem;" id="progressLabel">Preparazione…</div>
+  `;
+
+  // Simulate indeterminate progress
+  let fakeP = 0;
+  const fakeInterval = setInterval(() => {
+    fakeP = Math.min(fakeP + Math.random() * 8, 85);
+    const bar = document.getElementById("progressBar");
+    if (bar) bar.style.width = fakeP + "%";
+  }, 300);
+
   const formData = new FormData();
-  const allFolders = new Set();
+  const allFolders   = new Set();
   const relativePaths = [];
 
   window.selectedFiles.forEach((file) => {
     let relPath = file.webkitRelativePath || file.name;
-    if (window.currentPath) {
-      relPath = window.currentPath + "/" + relPath;
-    }
+    if (window.currentPath) relPath = window.currentPath + "/" + relPath;
     relPath = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
     relativePaths.push(relPath);
     formData.append("files", file, relPath);
     formData.append("relativePaths[]", relPath);
     const parts = relPath.split("/");
-    for (let i = 1; i < parts.length; i++) {
-      allFolders.add(parts.slice(0, i).join("/"));
-    }
+    for (let i = 1; i < parts.length; i++) allFolders.add(parts.slice(0, i).join("/"));
   });
 
   formData.append("relativePaths", JSON.stringify(relativePaths));
@@ -135,29 +157,39 @@ async function startUpload() {
       credentials: "same-origin",
     });
     const data = await response.json();
+    clearInterval(fakeInterval);
     window.isUploading = false;
 
+    const bar = document.getElementById("progressBar");
+    if (bar) bar.style.width = "100%";
+    await new Promise(r => setTimeout(r, 400));
+
     if (!response.ok || !data.success) {
-      showToast(
-        "Errore durante il caricamento: " + (data.message || data.error || "Errore sconosciuto"),
-        "danger",
-      );
+      showToast("Errore caricamento: " + (data.message || data.error || "Errore sconosciuto"), "danger");
+      progressWrap.style.display = "none";
+      document.getElementById("uploadZone").style.display = "block";
       return;
     }
+
     showToast(`✅ ${data.totalFiles || 0} file caricati con successo!`, "success");
     clearSelection();
     loadFiles(window.currentPath);
   } catch (error) {
-    console.error("Errore upload:", error);
-    showToast("Errore durante il caricamento dei file", "danger");
+    clearInterval(fakeInterval);
     window.isUploading = false;
+    console.error("Errore upload:", error);
+    showToast("Errore durante il caricamento", "danger");
+    progressWrap.style.display = "none";
+    document.getElementById("uploadZone").style.display = "block";
   }
 }
 
 function clearSelection() {
   window.selectedFiles = [];
-  document.getElementById("fileInput").value = "";
+  document.getElementById("fileInput").value   = "";
   document.getElementById("folderInput").value = "";
-  document.getElementById("selectedFiles").style.display = "none";
-  document.getElementById("filesList").innerHTML = "";
+  document.getElementById("selectedFiles").style.display   = "none";
+  document.getElementById("uploadProgress").style.display = "none";
+  document.getElementById("filesList").innerHTML           = "";
+  document.getElementById("uploadZone").style.display     = "block";
 }

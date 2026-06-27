@@ -63,16 +63,13 @@ function validatePasswordStrength(password, strengthElementId, buttonId = null) 
 
   if (password.length === 0) {
     strengthElement.style.width = "0%";
-    strengthElement.className = "password-strength";
+    strengthElement.className = "pw-strength-fill";
   } else if (validCount < 3) {
-    strengthElement.style.width = "33%";
-    strengthElement.className = "password-strength strength-weak";
+    strengthElement.className = "pw-strength-fill strength-weak";
   } else if (validCount < 5) {
-    strengthElement.style.width = "66%";
-    strengthElement.className = "password-strength strength-medium";
+    strengthElement.className = "pw-strength-fill strength-medium";
   } else {
-    strengthElement.style.width = "100%";
-    strengthElement.className = "password-strength strength-strong";
+    strengthElement.className = "pw-strength-fill strength-strong";
   }
 
   if (button) {
@@ -92,8 +89,7 @@ function updateRequirementIndicators(requirements) {
   Object.entries(indicators).forEach(([id, valid]) => {
     const element = document.getElementById(id);
     if (element) {
-      element.style.color = valid ? "#28a745" : "#6c757d";
-      element.innerHTML = (valid ? "✓ " : "• ") + element.textContent.replace(/^[✓•] /, "");
+      element.classList.toggle("valid", valid);
     }
   });
 }
@@ -118,47 +114,50 @@ function loadUsers() {
           ? new Date(user.last_login).toLocaleDateString("it-IT")
           : "Mai";
 
-        // Badge protezione: solo per ultimo admin, e solo spiega che il RUOLO non si può cambiare
+        // Badge protezione
         let protectionBadge = "";
         if (user.isProtected) {
           protectionBadge = `
-            <span class="badge bg-warning text-dark ms-1"
-                  title="Ultimo amministratore: non puoi cambiare il ruolo né eliminarlo, ma puoi modificare nome e password">
+            <span class="badge-protected"
+                  title="Ultimo amministratore: puoi modificare nome e password, ma non il ruolo">
               <i class="fas fa-shield-alt"></i> Ultimo Admin
             </span>
           `;
         }
 
-        // Il pulsante Modifica è SEMPRE abilitato per tutti
-        // canChangeRole serve solo per gestire il select del ruolo nel modal
         row.innerHTML = `
-          <td><strong>#${user.id}</strong></td>
+          <td><strong style="color:var(--text-3);font-size:.82rem;">#${user.id}</strong></td>
           <td>
-            <i class="fas fa-user me-2"></i>${user.username}
+            <span style="display:flex;align-items:center;gap:.45rem;">
+              <i class="fas fa-circle-user" style="color:var(--text-3)"></i>
+              <strong style="font-weight:600">${user.username}</strong>
+            </span>
           </td>
           <td>
-            <span class="badge ${user.role === "admin" ? "bg-danger" : "bg-primary"}">
-              <i class="fas ${user.role === "admin" ? "fa-crown" : "fa-user"} me-1"></i>
+            <span class="role-badge ${user.role === "admin" ? "role-admin" : "role-user"}">
+              <i class="fas ${user.role === "admin" ? "fa-crown" : "fa-user"}"></i>
               ${user.role.toUpperCase()}
             </span>
             ${protectionBadge}
           </td>
-          <td><small class="text-muted">${createdDate}</small></td>
-          <td><small class="text-muted">${lastLogin}</small></td>
+          <td style="color:var(--text-3);font-size:.82rem;">${createdDate}</td>
+          <td style="color:var(--text-3);font-size:.82rem;">${lastLogin}</td>
           <td>
-            <button class="btn btn-outline-primary btn-sm me-1"
-                    onclick="editUser(${user.id}, '${user.username}', '${user.role}', ${!!user.canChangeRole})">
-              <i class="fas fa-edit"></i> Modifica
-            </button>
-            ${user.canDelete
-              ? `<button class="btn btn-outline-danger btn-sm"
-                         onclick="deleteUser(${user.id}, '${user.username}')">
-                   <i class="fas fa-trash"></i> Elimina
-                 </button>`
-              : `<span class="text-muted small" title="Non puoi eliminare l'ultimo amministratore">
-                   <i class="fas fa-shield-alt me-1"></i>Protetto
-                 </span>`
-            }
+            <div class="user-actions">
+              <button class="admin-btn admin-btn-outline-primary admin-btn-sm"
+                      onclick="editUser(${user.id}, '${user.username}', '${user.role}', ${!!user.canChangeRole})">
+                <i class="fas fa-pen"></i> Modifica
+              </button>
+              ${user.canDelete
+                ? `<button class="admin-btn admin-btn-outline-danger admin-btn-sm"
+                           onclick="deleteUser(${user.id}, '${user.username}')">
+                     <i class="fas fa-trash"></i> Elimina
+                   </button>`
+                : `<span style="color:var(--text-3);font-size:.78rem;display:flex;align-items:center;gap:.3rem;">
+                     <i class="fas fa-shield-alt"></i> Protetto
+                   </span>`
+              }
+            </div>
           </td>
         `;
         table.appendChild(row);
@@ -275,7 +274,7 @@ function showAlert(message, type) {
 
   const alertEl = document.createElement("div");
   alertEl.id = alertId;
-  alertEl.className = `alert alert-${type} alert-dismissible fade show`;
+  alertEl.className = `alert alert-${type} alert-dismissible fade show fade-in`;
   alertEl.innerHTML = `
     <i class="fas ${type === "success" ? "fa-check-circle" : "fa-exclamation-triangle"} me-2"></i>
     ${message}

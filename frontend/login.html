@@ -3,108 +3,97 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login - Gestore File Avanzato</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      rel="stylesheet"
-    />
+    <title>Accedi — Gestore File</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="css/login.css" rel="stylesheet" />
     <link rel="icon" type="image/png" href="img/Logo.png" />
   </head>
-
   <body>
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-          <div class="login-container">
-            <div class="login-header">
-              <img src="img/logo.png" alt="Logo Aziendale" class="mb-3 login-logo"
-                onerror="this.onerror=null; this.style.display='none'; document.getElementById('fallbackIcon').style.display='inline-block';">
-              <i class="fas fa-shield-alt fa-3x mb-3" id="fallbackIcon" style="display: none;"></i>
-              <h2 class="mb-0">Gestore File Sicuro</h2>
-              <p class="mb-0 opacity-75">
-                Sistema di Archiviazione Cloud Protetto
-              </p>
-            </div>
-            <div class="login-body">
-              <div id="errorAlert" class="alert alert-danger d-none">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <span id="errorMessage">Credenziali non valide</span>
-              </div>
 
-              <form method="POST" action="/login">
-                <div class="mb-3">
-                  <label for="username" class="form-label">
-                    <i class="fas fa-user me-2"></i>Nome Utente
-                  </label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="username"
-                    name="username"
-                    required
-                    placeholder="inserisci nome utente"
-                  />
-                </div>
-                <div class="mb-4">
-                  <label for="password" class="form-label">
-                    <i class="fas fa-lock me-2"></i>Password
-                  </label>
-                  <div class="input-group">
-                    <input
-                      type="password"
-                      class="form-control"
-                      id="password"
-                      name="password"
-                      required
-                      placeholder="inserisci password"
-                    />
-                    <button class="btn btn-outline-secondary" type="button"
-                            onclick="togglePassword('password', 'eyeLogin')"
-                            tabindex="-1" title="Mostra/nascondi password">
-                      <i class="fas fa-eye" id="eyeLogin"></i>
-                    </button>
-                  </div>
+    <!-- Sfere decorative animate -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
 
-                  <!-- Barra forza password (identica all'admin) -->
-                  <div class="password-strength" id="loginPasswordStrength"></div>
+    <div class="login-wrapper">
+      <div class="login-card">
 
-                  <!-- Requisiti con indicatori dinamici -->
-                  <div class="password-requirements">
-                    <small>
-                      <i class="fas fa-shield-alt me-1"></i>
-                      <strong>Requisiti Password:</strong>
-                    </small>
-                    <ul>
-                      <li id="req-length">Almeno 8 caratteri</li>
-                      <li id="req-upper">Una lettera maiuscola</li>
-                      <li id="req-lower">Una lettera minuscola</li>
-                      <li id="req-number">Un numero</li>
-                      <li id="req-special">Un carattere speciale (!@#$%^&*)</li>
-                    </ul>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary btn-login w-100">
-                  <i class="fas fa-sign-in-alt me-2"></i>Accedi
-                </button>
-              </form>
-
-              <div class="text-center mt-4">
-                <div id="companyInfo" class="small text-muted">
-                  <i class="fas fa-building me-1"></i>
-                  <span id="companyName">Caricamento...</span><br>
-                  <i class="fas fa-id-card me-1"></i>
-                  <span id="companyVat">P.IVA: </span>
-                  <span id="companyAddress"></span>
-                </div>
-              </div>
+        <!-- Header -->
+        <div class="login-header">
+          <div class="logo-wrap">
+            <img src="img/Logo.png" alt="Logo" class="login-logo"
+              onerror="this.style.display='none'; document.getElementById('fallbackIcon').style.display='flex';">
+            <div class="fallback-icon" id="fallbackIcon" style="display:none;">
+              <i class="fas fa-shield-alt"></i>
             </div>
           </div>
+          <h1 class="login-title">Bentornato</h1>
+          <p class="login-subtitle">Accedi al tuo archivio cloud sicuro</p>
         </div>
+
+        <!-- Body -->
+        <div class="login-body">
+          <div id="errorAlert" class="alert-custom alert-danger-custom d-none">
+            <i class="fas fa-circle-exclamation"></i>
+            <span id="errorMessage">Credenziali non valide</span>
+          </div>
+
+          <form method="POST" action="/login">
+
+            <div class="field-group">
+              <label for="username" class="field-label">Nome utente</label>
+              <div class="field-input-wrap">
+                <i class="fas fa-user field-icon"></i>
+                <input type="text" class="field-input" id="username" name="username"
+                  required placeholder="Inserisci il tuo nome" autocomplete="username" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="password" class="field-label">Password</label>
+              <div class="field-input-wrap">
+                <i class="fas fa-lock field-icon"></i>
+                <input type="password" class="field-input" id="password" name="password"
+                  required placeholder="••••••••" autocomplete="current-password" />
+                <button class="toggle-pw" type="button"
+                  onclick="togglePassword('password','eyeLogin')" tabindex="-1">
+                  <i class="fas fa-eye" id="eyeLogin"></i>
+                </button>
+              </div>
+
+              <div class="pw-strength-bar">
+                <div class="pw-strength-fill" id="loginPasswordStrength"></div>
+              </div>
+
+              <div class="pw-requirements" id="pwRequirements">
+                <div class="pw-req-title"><i class="fas fa-shield-halved"></i> Requisiti password</div>
+                <div class="pw-req-grid">
+                  <span class="req-item" id="req-length"><i class="fas fa-circle"></i> 8+ caratteri</span>
+                  <span class="req-item" id="req-upper"><i class="fas fa-circle"></i> Maiuscola</span>
+                  <span class="req-item" id="req-lower"><i class="fas fa-circle"></i> Minuscola</span>
+                  <span class="req-item" id="req-number"><i class="fas fa-circle"></i> Numero</span>
+                  <span class="req-item" id="req-special"><i class="fas fa-circle"></i> Speciale</span>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-login">
+              <span>Accedi</span>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </form>
+        </div>
+
+        <!-- Footer info azienda -->
+        <div class="login-footer" id="companyInfo">
+          <i class="fas fa-building"></i>
+          <span id="companyName">Caricamento…</span>
+          <span class="sep">·</span>
+          <span id="companyVat"></span>
+        </div>
+
       </div>
     </div>
 
