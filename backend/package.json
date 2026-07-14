@@ -1,11 +1,11 @@
 {
   "name": "advanced-file-manager",
   "version": "2.0.0",
-  "description": "Advanced file manager with drag & drop, user management, and modern UI",
+  "description": "Advanced file manager — architettura a componenti (routes/controllers/services/utils + realtime)",
   "main": "server.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "archiver": "^7.0.1",
