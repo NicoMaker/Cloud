@@ -1,0 +1,470 @@
+/* =========================================================
+   RESPONSIVE — mobile + tablet (caricato DOPO gli altri CSS)
+   Breakpoint: 1024 (tablet land.) · 900 (tablet) · 700 (mobile)
+               · 480 (telefono piccolo)
+   ========================================================= */
+
+/* ---------- Base ---------- */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+}
+img,
+video,
+svg {
+  max-width: 100%;
+}
+.topbar-inner,
+.site-footer {
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
+}
+.site-footer {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.topbar-inner {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Evita lo zoom automatico di iOS sui campi < 16px */
+@media (max-width: 900px) {
+  input.dash-input,
+  input.admin-input,
+  select.admin-input,
+  .form-control,
+  .form-select,
+  input[type="text"],
+  input[type="password"],
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* ---------- Tablet landscape ---------- */
+@media (max-width: 1100px) {
+  .topbar-inner {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  .file-table th,
+  .file-table td {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* ---------- Tablet portrait: una colonna ---------- */
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .browser-panel {
+    order: 1;
+    min-width: 0;
+  }
+  .side-panel {
+    order: 2;
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+  }
+  /* ripristina la data (il vecchio CSS la nascondeva a 820px) */
+  .file-date,
+  .file-table th:nth-child(3) {
+    display: table-cell;
+  }
+  .file-actions {
+    flex-wrap: wrap;
+  }
+
+  /* Admin */
+  .admin-main {
+    padding: 1rem;
+  }
+  .user-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------- Mobile: righe tabella -> card ---------- */
+@media (max-width: 700px) {
+  /* Topbar */
+  :root {
+    --topbar-h: 58px;
+  }
+  .topbar-inner {
+    gap: 0.5rem;
+  }
+  .topbar-brand {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .topbar-brand span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar-actions {
+    flex-shrink: 0;
+    gap: 0.3rem;
+  }
+  .tb-btn,
+  .user-pill {
+    min-width: 40px;
+    height: 40px;
+    justify-content: center;
+  }
+  .user-pill {
+    padding: 0;
+    width: 40px;
+    overflow: hidden;
+    font-size: 0; /* nasconde il testo (nodo di testo, non <span>) */
+    gap: 0;
+  }
+  .user-pill i {
+    font-size: 1rem;
+    margin: 0 !important;
+  }
+  .theme-toggle {
+    width: 40px;
+  }
+
+  .main-grid {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  .side-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Header file browser */
+  .browser-header {
+    padding: 0.9rem 1rem;
+    align-items: flex-start;
+  }
+  .browser-header-left {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .breadcrumb-custom {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+  }
+  .browser-header > .dash-btn {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  /* Tabella file -> card */
+  .file-table-wrap {
+    overflow-x: visible;
+  }
+  .file-table,
+  .file-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .file-table thead {
+    display: none;
+  }
+  .file-table tbody tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "name name"
+      "size date"
+      "actions actions";
+    column-gap: 1rem;
+    row-gap: 0.35rem;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .file-table tbody tr:last-child {
+    border-bottom: none;
+  }
+  .file-table tbody tr td {
+    display: block;
+    padding: 0;
+    border: none;
+    min-width: 0;
+  }
+  .file-table td.cell-name {
+    grid-area: name;
+  }
+  .file-table td.cell-size {
+    grid-area: size;
+  }
+  .file-table td.cell-date {
+    grid-area: date;
+    display: block;
+  }
+  .file-table td.cell-actions {
+    grid-area: actions;
+    margin-top: 0.4rem;
+  }
+  .file-table td.cell-date::before {
+    content: "·";
+    margin-right: 0.5rem;
+  }
+  /* riga "directory padre": solo il nome */
+  .file-table tr.row-parent {
+    grid-template-areas: "name name";
+  }
+  .file-table tr.row-parent td:not(.cell-name) {
+    display: none;
+  }
+  /* righe segnaposto (caricamento / vuoto / errore) */
+  .file-table td[colspan] {
+    grid-area: auto;
+    grid-column: 1 / -1;
+    padding: 2rem 1rem !important;
+    text-align: center;
+  }
+  .file-icon-cell {
+    gap: 0.65rem;
+  }
+  .file-name-text,
+  .file-name-link {
+    overflow-wrap: anywhere;
+    word-break: normal;
+    min-width: 0;
+  }
+  .file-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+    gap: 0.4rem;
+  }
+  .file-actions .dash-btn-sm {
+    width: 100%;
+    height: 42px;
+    border-radius: 10px;
+  }
+
+  /* Pulsanti / input più comodi al tocco */
+  .dash-input,
+  .dash-btn {
+    min-height: 44px;
+  }
+  .upload-zone {
+    padding: 1.25rem 0.85rem;
+  }
+  .upload-btn-row {
+    flex-wrap: wrap;
+  }
+  .upload-btn-row .dash-btn {
+    flex: 1 1 130px;
+    justify-content: center;
+  }
+
+  /* ----- Admin: tabella utenti -> card ----- */
+  .user-table-wrap {
+    overflow-x: visible;
+  }
+  .user-table,
+  .user-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .user-table thead {
+    display: none;
+  }
+  .user-table tbody tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "id name"
+      "role role"
+      "created login"
+      "actions actions";
+    column-gap: 1rem;
+    row-gap: 0.45rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .user-table tbody tr:last-child {
+    border-bottom: none;
+  }
+  .user-table tbody tr td {
+    display: block;
+    padding: 0;
+    border: none;
+    min-width: 0;
+  }
+  .user-table td.u-id {
+    grid-area: id;
+    align-self: center;
+  }
+  .user-table td.u-name {
+    grid-area: name;
+  }
+  .user-table td.u-role {
+    grid-area: role;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+  }
+  .user-table td.u-created {
+    grid-area: created;
+  }
+  .user-table td.u-login {
+    grid-area: login;
+  }
+  .user-table td.u-actions {
+    grid-area: actions;
+    margin-top: 0.3rem;
+  }
+  .user-table td[data-label]::before {
+    content: attr(data-label) ": ";
+    color: var(--text-3);
+    opacity: 0.8;
+  }
+  .user-table td[colspan] {
+    grid-column: 1 / -1;
+    padding: 2rem 1rem !important;
+    text-align: center;
+  }
+  .user-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+  }
+  .user-actions .admin-btn {
+    justify-content: center;
+    min-height: 42px;
+  }
+  .admin-card-header {
+    padding: 0.9rem 1rem;
+  }
+  .admin-card-body {
+    padding: 1rem;
+  }
+  .admin-card-body.p-0 {
+    padding: 0;
+  }
+}
+
+/* ---------- Modali ---------- */
+@media (max-width: 700px) {
+  .modal-dialog {
+    margin: 0.75rem;
+    max-width: none;
+  }
+  .modal-modern {
+    max-height: calc(100dvh - 1.5rem);
+  }
+  .modal-modern .modal-body,
+  .modal-body-pad {
+    padding: 1.1rem;
+    overflow-y: auto;
+  }
+  .modal-modern .modal-header {
+    padding: 0.9rem 1.1rem;
+  }
+  .modal-modern .modal-footer,
+  .modal-footer-custom {
+    padding: 0.85rem 1.1rem;
+    flex-wrap: wrap;
+  }
+  .modal-modern .modal-footer > * {
+    flex: 1 1 140px;
+    justify-content: center;
+    margin: 0;
+  }
+}
+
+/* ---------- Toast ---------- */
+@media (max-width: 600px) {
+  .toast-stack {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+  }
+}
+
+/* ---------- Footer ---------- */
+@media (max-width: 600px) {
+  .footer-inner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .footer-meta {
+    justify-content: center;
+  }
+}
+
+/* ---------- Login ---------- */
+@media (max-width: 480px) {
+  body {
+    align-items: stretch;
+    padding: max(0.75rem, env(safe-area-inset-top)) 0.75rem
+      max(0.75rem, env(safe-area-inset-bottom));
+  }
+  .login-card {
+    width: 100%;
+    max-width: 100%;
+    margin: auto;
+  }
+  .bg-orb {
+    max-width: 90vw;
+    max-height: 90vw;
+  }
+}
+
+/* ---------- Telefono piccolo ---------- */
+@media (max-width: 380px) {
+  .topbar-brand span {
+    display: none;
+  }
+  .topbar-logo,
+  .topbar-brand > i {
+    flex-shrink: 0;
+  }
+  .topbar-actions {
+    gap: 0.2rem;
+  }
+  .tb-btn,
+  .user-pill,
+  .theme-toggle {
+    min-width: 36px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+  }
+  .file-actions {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ---------- Schermi touch: niente hover-only ---------- */
+@media (hover: none) {
+  .file-table tbody tr .file-actions {
+    opacity: 1;
+  }
+}
+
+/* ---------- Landscape telefono (poca altezza) ---------- */
+@media (max-height: 500px) and (orientation: landscape) {
+  .modal-dialog {
+    margin: 0.5rem auto;
+  }
+  .modal-modern {
+    max-height: calc(100dvh - 1rem);
+  }
+}

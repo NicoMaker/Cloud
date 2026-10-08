@@ -28,9 +28,9 @@ function displayFiles(files, folderPath) {
   if (folderPath !== "") {
     const parentPath = folderPath.split("/").slice(0, -1).join("/");
     const row = document.createElement("tr");
-    row.className = "fade-in";
+    row.className = "fade-in row-parent";
     row.innerHTML = `
-      <td>
+      <td class="cell-name">
         <div class="file-icon-cell">
           <span class="file-ico"><i class="fas fa-level-up-alt"></i></span>
           <a href="#" onclick="loadFiles('${parentPath}')" class="file-name-link">
@@ -38,9 +38,9 @@ function displayFiles(files, folderPath) {
           </a>
         </div>
       </td>
-      <td class="file-size">—</td>
-      <td class="file-date">—</td>
-      <td>—</td>
+      <td class="file-size cell-size">—</td>
+      <td class="file-date cell-date">—</td>
+      <td class="cell-actions">—</td>
     `;
     fileList.appendChild(row);
   }
@@ -114,7 +114,7 @@ function displayFiles(files, folderPath) {
         : "";
 
     row.innerHTML = `
-      <td>
+      <td class="cell-name">
         <div class="file-icon-cell">
           <span class="file-ico tone-${getFileTone(file)}"><i class="${icon}"></i></span>
           ${
@@ -127,9 +127,9 @@ function displayFiles(files, folderPath) {
           }
         </div>
       </td>
-      <td class="file-size">${size}</td>
-      <td class="file-date">${modified}</td>
-      <td>
+      <td class="file-size cell-size">${size}</td>
+      <td class="file-date cell-date">${modified}</td>
+      <td class="cell-actions">
         <div class="file-actions">
           ${downloadBtn}${downloadZipBtn}${renameBtn}${copyBtn}${moveBtn}${deleteBtn}
         </div>

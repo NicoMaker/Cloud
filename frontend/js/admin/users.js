@@ -33,23 +33,23 @@ function loadUsers() {
         }
 
         row.innerHTML = `
-          <td><strong style="color:var(--text-3);font-size:.82rem;">#${user.id}</strong></td>
-          <td>
+          <td class="u-id"><strong style="color:var(--text-3);font-size:.82rem;">#${user.id}</strong></td>
+          <td class="u-name">
             <span style="display:flex;align-items:center;gap:.45rem;">
               <i class="fas fa-circle-user" style="color:var(--text-3)"></i>
               <strong style="font-weight:600">${user.username}</strong>
             </span>
           </td>
-          <td>
+          <td class="u-role">
             <span class="role-badge ${user.role === "admin" ? "role-admin" : "role-user"}">
               <i class="fas ${user.role === "admin" ? "fa-crown" : "fa-user"}"></i>
               ${user.role.toUpperCase()}
             </span>
             ${protectionBadge}
           </td>
-          <td style="color:var(--text-3);font-size:.82rem;">${createdDate}</td>
-          <td style="color:var(--text-3);font-size:.82rem;">${lastLogin}</td>
-          <td>
+          <td class="u-created" data-label="Creato" style="color:var(--text-3);font-size:.82rem;">${createdDate}</td>
+          <td class="u-login" data-label="Ultimo accesso" style="color:var(--text-3);font-size:.82rem;">${lastLogin}</td>
+          <td class="u-actions">
             <div class="user-actions">
               <button class="admin-btn admin-btn-outline-primary admin-btn-sm"
                       onclick="editUser(${user.id}, '${user.username}', '${user.role}', ${!!user.canChangeRole})">
@@ -85,7 +85,7 @@ function editUser(id, username, role, canChangeRole = true) {
   const roleSelect = document.getElementById("editRole");
   roleSelect.value = role;
 
-  const modalBody = roleSelect.closest(".modal-body");
+  const modalBody = roleSelect.closest(".modal-body, .modal-body-pad");
   const existingWarning = modalBody.querySelector(".admin-protection-warning");
   if (existingWarning) existingWarning.remove();
 
