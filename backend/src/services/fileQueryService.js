@@ -65,7 +65,8 @@ function creaFileQueryService(baseFolder) {
     // Risolve e valida il percorso per il download; ritorna null se non valido
     risolviDownload(relPath) {
       const filePath = path.normalize(path.join(baseFolder, relPath));
-      if (!validatePathTraversal(filePath, baseFolder)) return { forbidden: true };
+      if (!validatePathTraversal(filePath, baseFolder))
+        return { forbidden: true };
       if (!fs.existsSync(filePath)) return { notFound: true };
       return { filePath };
     },
@@ -136,7 +137,9 @@ function creaFileQueryService(baseFolder) {
         });
       }
 
-      const successful = uploadResults.filter((r) => r.status === "success").length;
+      const successful = uploadResults.filter(
+        (r) => r.status === "success",
+      ).length;
       const failed = uploadResults.filter((r) => r.status === "error").length;
 
       return {

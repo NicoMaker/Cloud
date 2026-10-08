@@ -17,7 +17,9 @@ const {
 } = require("./middleware/authMiddleware");
 const { setupAuthRoutes } = require("./routes/authRoutes");
 const { setupFileRoutes } = require("./routes/fileRoutes");
-const { setupFileManipulationRoutes } = require("./routes/fileManipulationRoutes");
+const {
+  setupFileManipulationRoutes,
+} = require("./routes/fileManipulationRoutes");
 const { setupZipRoutes } = require("./routes/zipRoutes");
 const { setupUserRoutes } = require("./routes/userRoutes");
 const { setupWebSocket } = require("./sockets/websocketSetup");

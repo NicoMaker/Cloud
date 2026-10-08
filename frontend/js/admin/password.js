@@ -22,7 +22,11 @@ function setupPasswordValidation() {
 
   if (passwordInput) {
     passwordInput.addEventListener("input", (e) =>
-      validatePasswordStrength(e.target.value, "passwordStrength", "createUserBtn"),
+      validatePasswordStrength(
+        e.target.value,
+        "passwordStrength",
+        "createUserBtn",
+      ),
     );
   }
 
@@ -33,7 +37,11 @@ function setupPasswordValidation() {
   }
 }
 
-function validatePasswordStrength(password, strengthElementId, buttonId = null) {
+function validatePasswordStrength(
+  password,
+  strengthElementId,
+  buttonId = null,
+) {
   const strengthElement = document.getElementById(strengthElementId);
   const button = buttonId ? document.getElementById(buttonId) : null;
 

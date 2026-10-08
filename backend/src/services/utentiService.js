@@ -52,7 +52,8 @@ function creaUtentiService(db) {
         [username, hashPassword(password), role],
         (err) => {
           if (err) {
-            if (err.code === "SQLITE_CONSTRAINT_UNIQUE") return onResult("user_exists");
+            if (err.code === "SQLITE_CONSTRAINT_UNIQUE")
+              return onResult("user_exists");
             console.error("Database error:", err);
             return onResult("database_error");
           }
@@ -85,7 +86,8 @@ function creaUtentiService(db) {
         const esegui = () => {
           let query, params;
           if (password) {
-            query = "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
+            query =
+              "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
             params = [username, hashPassword(password), role, targetId];
           } else {
             query = "UPDATE users SET username = ?, role = ? WHERE id = ?";

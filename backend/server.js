@@ -15,9 +15,13 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, "0.0.0.0", async () => {
   const localIP = getLocalIP();
   const publicIP = await getPublicIP();
-  const publicBaseUrl = publicIP ? `http://${publicIP}:${PORT}` : `http://localhost:${PORT}`;
+  const publicBaseUrl = publicIP
+    ? `http://${publicIP}:${PORT}`
+    : `http://localhost:${PORT}`;
   console.log("✅ Backend avviato");
-  console.log(`🌐 IP Pubblico: ${publicIP ? publicBaseUrl : "non disponibile"}`);
+  console.log(
+    `🌐 IP Pubblico: ${publicIP ? publicBaseUrl : "non disponibile"}`,
+  );
   console.log(`🏠 IP Locale: http://${localIP}:${PORT}`);
   console.log(`📍 Localhost: http://localhost:${PORT}`);
   console.log("🔌 Socket.IO abilitato per sincronizzazione real-time");

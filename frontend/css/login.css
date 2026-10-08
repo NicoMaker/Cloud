@@ -8,8 +8,16 @@ body {
   overflow-x: hidden;
   position: relative;
   background:
-    radial-gradient(1200px 600px at 15% -10%, color-mix(in srgb, var(--brand) 18%, transparent), transparent 60%),
-    radial-gradient(900px 500px at 100% 110%, color-mix(in srgb, var(--brand-2) 16%, transparent), transparent 60%),
+    radial-gradient(
+      1200px 600px at 15% -10%,
+      color-mix(in srgb, var(--brand) 18%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at 100% 110%,
+      color-mix(in srgb, var(--brand-2) 16%, transparent),
+      transparent 60%
+    ),
     var(--bg);
 }
 
@@ -22,7 +30,11 @@ body::before {
   background-image: radial-gradient(var(--border-strong) 1px, transparent 1px);
   background-size: 26px 26px;
   mask-image: radial-gradient(ellipse at center, #000 20%, transparent 70%);
-  -webkit-mask-image: radial-gradient(ellipse at center, #000 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at center,
+    #000 20%,
+    transparent 70%
+  );
   opacity: 0.6;
   pointer-events: none;
 }
@@ -228,8 +240,13 @@ body::before {
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  box-shadow: 0 10px 24px -10px var(--brand), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  transition: transform 0.2s var(--ease), box-shadow 0.2s, filter 0.2s;
+  box-shadow:
+    0 10px 24px -10px var(--brand),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s,
+    filter 0.2s;
 }
 .btn-login i {
   transition: transform 0.25s var(--ease);
@@ -237,7 +254,9 @@ body::before {
 .btn-login:hover {
   transform: translateY(-2px);
   filter: brightness(1.08);
-  box-shadow: 0 16px 30px -10px var(--brand), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 16px 30px -10px var(--brand),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 .btn-login:hover i {
   transform: translateX(4px);

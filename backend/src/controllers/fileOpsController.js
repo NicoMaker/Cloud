@@ -55,7 +55,9 @@ function creaFileOpsController(fileOps) {
         res.json(fileOps.createFolder(req.body?.path));
       } catch (err) {
         if (err instanceof fileOps.FileOpError) {
-          return res.status(err.status).json({ success: false, message: err.message });
+          return res
+            .status(err.status)
+            .json({ success: false, message: err.message });
         }
         console.error("Errore creazione cartella:", err);
         res.status(500).json({ success: false, message: "Errore interno" });

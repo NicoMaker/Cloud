@@ -33,7 +33,8 @@ function setupUserRoutes(app, db, forceLogoutUserEverywhere, requireAdmin) {
   // POST crea utente
   app.post("/create-user", requireAdmin, (req, res) => {
     utenti.crea(req.body, (errorKey, details) => {
-      if (errorKey) return res.redirect(redirectUrl("/admin.html", errorKey, details));
+      if (errorKey)
+        return res.redirect(redirectUrl("/admin.html", errorKey, details));
       res.redirect("/admin.html?success=user_created");
     });
   });
@@ -43,7 +44,8 @@ function setupUserRoutes(app, db, forceLogoutUserEverywhere, requireAdmin) {
     utenti.aggiorna(
       { ...req.body, requestingAdminId: req.session.user.id },
       (errorKey, details, meta) => {
-        if (errorKey) return res.redirect(redirectUrl("/admin.html", errorKey, details));
+        if (errorKey)
+          return res.redirect(redirectUrl("/admin.html", errorKey, details));
 
         if (meta.isSelf) {
           // Ha modificato sé stesso → deve riautenticarsi
@@ -62,7 +64,8 @@ function setupUserRoutes(app, db, forceLogoutUserEverywhere, requireAdmin) {
   // POST elimina utente
   app.post("/delete-user", requireAdmin, (req, res) => {
     utenti.elimina(req.body.id, (errorKey, details, meta) => {
-      if (errorKey) return res.redirect(redirectUrl("/admin.html", errorKey, details));
+      if (errorKey)
+        return res.redirect(redirectUrl("/admin.html", errorKey, details));
       forceLogoutUserEverywhere(meta.targetId, "account_deleted", () => {
         res.redirect("/admin.html?success=user_deleted");
       });

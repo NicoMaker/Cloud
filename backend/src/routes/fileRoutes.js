@@ -39,7 +39,9 @@ function setupFileRoutes(app, db, requireLogin) {
   app.post("/upload", requireLogin, async (req, res) => {
     try {
       if (!req.files || Object.keys(req.files).length === 0) {
-        return res.status(400).json({ success: false, message: "Nessun file caricato" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Nessun file caricato" });
       }
 
       let files = req.files.files;
@@ -48,7 +50,9 @@ function setupFileRoutes(app, db, requireLogin) {
         if (fileKeys.length > 0) files = req.files[fileKeys[0]];
       }
       if (!files) {
-        return res.status(400).json({ success: false, message: "Nessun file trovato" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Nessun file trovato" });
       }
 
       const risultato = await fileQuery.salvaUpload({

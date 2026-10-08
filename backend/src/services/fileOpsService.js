@@ -22,15 +22,21 @@ class FileOpError extends Error {
 
 function creaFileOpsService(db, io, baseFolder) {
   const toRel = (p) => path.relative(baseFolder, p).replace(/\\/g, "/");
-  const emit = (action) => io.emit("filesChanged", { action, timestamp: Date.now() });
+  const emit = (action) =>
+    io.emit("filesChanged", { action, timestamp: Date.now() });
 
   return {
     FileOpError,
 
     // Rinomina un file o cartella
     rename({ oldPath, newName }) {
-      if (!oldPath || !newName) throw new FileOpError(400, "Parametri mancanti");
-      if (newName.includes("/") || newName.includes("\\") || newName.includes("..")) {
+      if (!oldPath || !newName)
+        throw new FileOpError(400, "Parametri mancanti");
+      if (
+        newName.includes("/") ||
+        newName.includes("\\") ||
+        newName.includes("..")
+      ) {
         throw new FileOpError(400, "Nome non valido");
       }
 
@@ -47,7 +53,10 @@ function creaFileOpsService(db, io, baseFolder) {
         throw new FileOpError(403, "Percorso destinazione non consentito");
       }
       if (fs.existsSync(newFullPath)) {
-        throw new FileOpError(409, "Esiste già un file o cartella con questo nome");
+        throw new FileOpError(
+          409,
+          "Esiste già un file o cartella con questo nome",
+        );
       }
 
       fs.renameSync(oldFullPath, newFullPath);
@@ -64,7 +73,8 @@ function creaFileOpsService(db, io, baseFolder) {
 
     // Copia o sposta un file/cartella
     copyMove({ action, sourcePath, destFolder, newName }) {
-      if (!action || !sourcePath) throw new FileOpError(400, "Parametri mancanti");
+      if (!action || !sourcePath)
+        throw new FileOpError(400, "Parametri mancanti");
       if (!["copy", "move"].includes(action)) {
         throw new FileOpError(400, "Azione non valida (usare 'copy' o 'move')");
       }
@@ -83,7 +93,9 @@ function creaFileOpsService(db, io, baseFolder) {
       }
 
       const finalName = safeName || path.basename(srcFullPath);
-      const destFolderClean = (destFolder || "").replace(/\\/g, "/").replace(/^\/+/, "");
+      const destFolderClean = (destFolder || "")
+        .replace(/\\/g, "/")
+        .replace(/^\/+/, "");
       const destFullPath = path.normalize(
         path.join(
           baseFolder,
@@ -94,11 +106,20 @@ function creaFileOpsService(db, io, baseFolder) {
       if (!validatePathTraversal(destFullPath, baseFolder)) {
         throw new FileOpError(403, "Percorso destinazione non consentito");
       }
-      if (destFullPath === srcFullPath || destFullPath.startsWith(srcFullPath + path.sep)) {
-        throw new FileOpError(400, "Non puoi copiare/spostare una cartella dentro sé stessa");
+      if (
+        destFullPath === srcFullPath ||
+        destFullPath.startsWith(srcFullPath + path.sep)
+      ) {
+        throw new FileOpError(
+          400,
+          "Non puoi copiare/spostare una cartella dentro sé stessa",
+        );
       }
       if (fs.existsSync(destFullPath)) {
-        throw new FileOpError(409, "Esiste già un elemento con questo nome nella destinazione");
+        throw new FileOpError(
+          409,
+          "Esiste già un elemento con questo nome nella destinazione",
+        );
       }
 
       const destDir = path.dirname(destFullPath);
@@ -129,7 +150,9 @@ function creaFileOpsService(db, io, baseFolder) {
         throw new FileOpError(403, "Invalid path", { error: "Invalid path" });
       }
       if (!fs.existsSync(filePath)) {
-        throw new FileOpError(404, "File not found", { error: "File not found" });
+        throw new FileOpError(404, "File not found", {
+          error: "File not found",
+        });
       }
 
       const stats = fs.statSync(filePath);
@@ -139,7 +162,9 @@ function creaFileOpsService(db, io, baseFolder) {
       if (stats.isFile()) {
         db.run("DELETE FROM file_uploads WHERE filepath = ?", [relativePath]);
       } else {
-        db.run("DELETE FROM file_uploads WHERE filepath LIKE ?", [`${relativePath}/%`]);
+        db.run("DELETE FROM file_uploads WHERE filepath LIKE ?", [
+          `${relativePath}/%`,
+        ]);
       }
       console.log(`✅ Eliminato: ${filePath}`);
       emit("delete");
@@ -157,14 +182,23 @@ function creaFileOpsService(db, io, baseFolder) {
           db.run("DELETE FROM file_uploads", (err) => {
             if (err) {
               console.error("❌ Errore pulizia database:", err);
-              return reject(new FileOpError(500, "Database cleanup failed", { error: "Database cleanup failed" }));
+              return reject(
+                new FileOpError(500, "Database cleanup failed", {
+                  error: "Database cleanup failed",
+                }),
+              );
             }
             console.log("🗑️  Eliminati tutti i file e dati");
             emit("delete-all");
-            resolve({ success: true, message: "Tutti i file e dati sono stati eliminati" });
+            resolve({
+              success: true,
+              message: "Tutti i file e dati sono stati eliminati",
+            });
           });
         } catch (error) {
-          reject(new FileOpError(500, error.message, { error: "Delete all failed" }));
+          reject(
+            new FileOpError(500, error.message, { error: "Delete all failed" }),
+          );
         }
       });
     },

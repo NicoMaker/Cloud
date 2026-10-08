@@ -251,24 +251,33 @@ function updateBreadcrumb(path) {
 function getFileTone(file) {
   if (file.type === "folder") return "folder";
   const ext = file.name.split(".").pop().toLowerCase();
-  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext)) return "image";
+  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext))
+    return "image";
   if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(ext)) return "doc";
   if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext)) return "archive";
-  if (["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(ext)) return "video";
+  if (["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(ext))
+    return "video";
   if (["mp3", "wav", "flac", "aac", "ogg", "wma"].includes(ext)) return "audio";
-  if (["js", "html", "css", "php", "py", "java", "cpp", "c"].includes(ext)) return "code";
+  if (["js", "html", "css", "php", "py", "java", "cpp", "c"].includes(ext))
+    return "code";
   return "muted";
 }
 
 function getFileIcon(file) {
   if (file.type === "folder") return "fas fa-folder";
   const ext = file.name.split(".").pop().toLowerCase();
-  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext)) return "fas fa-image";
-  if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(ext)) return "fas fa-file-alt";
-  if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext)) return "fas fa-file-zipper";
-  if (["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(ext)) return "fas fa-file-video";
-  if (["mp3", "wav", "flac", "aac", "ogg", "wma"].includes(ext)) return "fas fa-file-audio";
-  if (["js", "html", "css", "php", "py", "java", "cpp", "c"].includes(ext)) return "fas fa-file-code";
+  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext))
+    return "fas fa-image";
+  if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(ext))
+    return "fas fa-file-alt";
+  if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext))
+    return "fas fa-file-zipper";
+  if (["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(ext))
+    return "fas fa-file-video";
+  if (["mp3", "wav", "flac", "aac", "ogg", "wma"].includes(ext))
+    return "fas fa-file-audio";
+  if (["js", "html", "css", "php", "py", "java", "cpp", "c"].includes(ext))
+    return "fas fa-file-code";
   return "fas fa-file";
 }
 
