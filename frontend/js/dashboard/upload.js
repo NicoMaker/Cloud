@@ -204,3 +204,31 @@ function clearSelection() {
   document.getElementById("filesList").innerHTML = "";
   document.getElementById("uploadZone").style.display = "block";
 }
+
+// =============================================
+//  DRAG & DROP (file singoli) — feedback visivo sulla zona upload
+// =============================================
+document.addEventListener("DOMContentLoaded", () => {
+  const zone = document.getElementById("uploadZone");
+  if (!zone) return;
+
+  ["dragenter", "dragover"].forEach((evt) =>
+    zone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      zone.classList.add("dragover");
+    }),
+  );
+  ["dragleave", "drop"].forEach((evt) =>
+    zone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      zone.classList.remove("dragover");
+    }),
+  );
+  zone.addEventListener("drop", (e) => {
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (!files.length) return;
+    window.mainFolderNames = [];
+    window.selectedFiles = files;
+    displaySelectedFiles();
+  });
+});

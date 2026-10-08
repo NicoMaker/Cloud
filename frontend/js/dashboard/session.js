@@ -51,8 +51,8 @@ function initializeApp() {
       }
 
       if (data.role === "admin") {
-        document.getElementById("adminBtn").style.display = "inline-block";
-        document.getElementById("deleteAllBtn").style.display = "inline-block";
+        document.getElementById("adminBtn").style.display = "inline-flex";
+        document.getElementById("deleteAllBtn").style.display = "inline-flex";
       }
     })
     .catch((err) => {

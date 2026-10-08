@@ -32,7 +32,7 @@ function displayFiles(files, folderPath) {
     row.innerHTML = `
       <td>
         <div class="file-icon-cell">
-          <i class="fas fa-level-up-alt" style="color:var(--text-3);width:18px;text-align:center"></i>
+          <span class="file-ico"><i class="fas fa-level-up-alt"></i></span>
           <a href="#" onclick="loadFiles('${parentPath}')" class="file-name-link">
             <strong>.. (Directory Padre)</strong>
           </a>
@@ -116,12 +116,12 @@ function displayFiles(files, folderPath) {
     row.innerHTML = `
       <td>
         <div class="file-icon-cell">
-          <i class="${icon}" style="width:18px;text-align:center;font-size:.95rem;"></i>
+          <span class="file-ico tone-${getFileTone(file)}"><i class="${icon}"></i></span>
           ${
             file.type === "folder"
               ? `<a href="#" onclick="loadFiles('${file.path}')" class="file-name-link">
                  <strong>${file.name}</strong>
-                 <i class="fas fa-chevron-right" style="font-size:.65rem;color:var(--text-3)"></i>
+                 <i class="fas fa-chevron-right" style="font-size:.6rem;color:var(--text-3)"></i>
                </a>`
               : `<span class="file-name-text">${file.name}</span>`
           }
@@ -248,22 +248,28 @@ function updateBreadcrumb(path) {
   }
 }
 
-function getFileIcon(file) {
-  if (file.type === "folder") return "fas fa-folder" + " " + "text-warning";
+function getFileTone(file) {
+  if (file.type === "folder") return "folder";
   const ext = file.name.split(".").pop().toLowerCase();
-  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext))
-    return "fas fa-image text-success";
-  if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(ext))
-    return "fas fa-file-alt text-primary";
-  if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext))
-    return "fas fa-file-zipper text-secondary";
-  if (["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(ext))
-    return "fas fa-file-video text-danger";
-  if (["mp3", "wav", "flac", "aac", "ogg", "wma"].includes(ext))
-    return "fas fa-file-audio text-info";
-  if (["js", "html", "css", "php", "py", "java", "cpp", "c"].includes(ext))
-    return "fas fa-file-code text-dark";
-  return "fas fa-file text-muted";
+  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext)) return "image";
+  if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(ext)) return "doc";
+  if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext)) return "archive";
+  if (["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(ext)) return "video";
+  if (["mp3", "wav", "flac", "aac", "ogg", "wma"].includes(ext)) return "audio";
+  if (["js", "html", "css", "php", "py", "java", "cpp", "c"].includes(ext)) return "code";
+  return "muted";
+}
+
+function getFileIcon(file) {
+  if (file.type === "folder") return "fas fa-folder";
+  const ext = file.name.split(".").pop().toLowerCase();
+  if (["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext)) return "fas fa-image";
+  if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(ext)) return "fas fa-file-alt";
+  if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext)) return "fas fa-file-zipper";
+  if (["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"].includes(ext)) return "fas fa-file-video";
+  if (["mp3", "wav", "flac", "aac", "ogg", "wma"].includes(ext)) return "fas fa-file-audio";
+  if (["js", "html", "css", "php", "py", "java", "cpp", "c"].includes(ext)) return "fas fa-file-code";
+  return "fas fa-file";
 }
 
 function formatFileSize(bytes) {
