@@ -87,7 +87,9 @@ function editUser(id, username, role, canChangeRole = true) {
   if (eye) eye.className = "fas fa-eye-slash";
   pwInput.placeholder = "Caricamento password…";
   pwInput.disabled = true;
-  fetch(`/api/users/${id}/password`, { headers: { Accept: "application/json" } })
+  fetch(`/api/users/${id}/password`, {
+    headers: { Accept: "application/json" },
+  })
     .then((res) => res.json())
     .then((data) => {
       pwInput.disabled = false;

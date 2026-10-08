@@ -140,7 +140,8 @@ function creaUtentiService(db) {
         [Number.parseInt(id)],
         (err, row) => {
           if (err) return callback({ status: 500, error: "Database error" });
-          if (!row) return callback({ status: 404, error: "Utente non trovato" });
+          if (!row)
+            return callback({ status: 404, error: "Utente non trovato" });
           callback(null, decryptPassword(row.password_enc));
         },
       );
