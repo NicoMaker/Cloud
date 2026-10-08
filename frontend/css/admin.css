@@ -163,3 +163,11 @@ select.admin-input {
     flex-direction: column;
   }
 }
+
+/* ---------- Strumenti password (modal modifica) ---------- */
+.pw-tools {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}

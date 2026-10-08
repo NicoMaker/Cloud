@@ -3,7 +3,7 @@
 // =============================================
 
 const express = require("express");
-const { verifyPassword } = require("../utils/passwordUtils");
+const { verifyPassword, encryptPassword } = require("../utils/passwordUtils");
 
 function setupAuthRoutes(app, db, requireLogin) {
   // Login
@@ -28,6 +28,14 @@ function setupAuthRoutes(app, db, requireLogin) {
             "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
             [user.id],
           );
+
+          // Utenti creati prima della funzione "vedi password": salva la copia cifrata al primo login
+          if (!user.password_enc) {
+            db.run("UPDATE users SET password_enc = ? WHERE id = ?", [
+              encryptPassword(password),
+              user.id,
+            ]);
+          }
 
           req.session.user = {
             id: user.id,

@@ -5,7 +5,7 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const fs = require("fs");
-const { hashPassword } = require("../utils/passwordUtils");
+const { hashPassword, encryptPassword } = require("../utils/passwordUtils");
 
 function setupDatabase(rootDir) {
   const dbDir = path.join(rootDir, "db");
@@ -27,6 +27,9 @@ function setupDatabase(rootDir) {
       )
     `);
 
+    // Colonna con la copia cifrata della password (migrazione, ignora se esiste)
+    db.run("ALTER TABLE users ADD COLUMN password_enc TEXT", () => {});
+
     // Tabella file_uploads
     db.run(`
       CREATE TABLE IF NOT EXISTS file_uploads (
@@ -47,8 +50,8 @@ function setupDatabase(rootDir) {
         if (!err && row.count === 0) {
           const hashedPassword = hashPassword("Admin123!");
           db.run(
-            "INSERT INTO users (username, password, role) VALUES ('Admin', ?, 'admin')",
-            [hashedPassword],
+            "INSERT INTO users (username, password, password_enc, role) VALUES ('Admin', ?, ?, 'admin')",
+            [hashedPassword, encryptPassword("Admin123!")],
           );
           console.log(
             "👤 Admin iniziale creato con password: Admin123! e username Admin",

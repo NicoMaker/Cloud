@@ -30,6 +30,15 @@ function setupUserRoutes(app, db, forceLogoutUserEverywhere, requireAdmin) {
     });
   });
 
+  // GET password attuale di un utente (solo admin)
+  app.get("/api/users/:id/password", requireAdmin, (req, res) => {
+    utenti.getPassword(req.params.id, (err, password) => {
+      if (err) return res.status(err.status).json({ error: err.error });
+      res.set("Cache-Control", "no-store");
+      res.json({ password }); // null = non ancora disponibile
+    });
+  });
+
   // POST crea utente
   app.post("/create-user", requireAdmin, (req, res) => {
     utenti.crea(req.body, (errorKey, details) => {

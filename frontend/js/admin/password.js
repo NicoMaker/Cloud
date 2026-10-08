@@ -16,6 +16,57 @@ function togglePassword(inputId, iconId) {
   }
 }
 
+// Genera una password casuale che rispetta tutti i requisiti e la mostra in chiaro
+function generatePassword(inputId, iconId) {
+  const sets = {
+    upper: "ABCDEFGHJKLMNPQRSTUVWXYZ",
+    lower: "abcdefghijkmnopqrstuvwxyz",
+    number: "23456789",
+    special: "!@#$%^&*",
+  };
+  const all = Object.values(sets).join("");
+  const rnd = (max) => {
+    const buf = new Uint32Array(1);
+    const limit = Math.floor(0x100000000 / max) * max;
+    do {
+      crypto.getRandomValues(buf);
+    } while (buf[0] >= limit);
+    return buf[0] % max;
+  };
+  const pick = (chars) => chars[rnd(chars.length)];
+
+  const chars = Object.values(sets).map(pick);
+  while (chars.length < 14) chars.push(pick(all));
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = rnd(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+
+  const input = document.getElementById(inputId);
+  input.value = chars.join("");
+  input.type = "text";
+  const icon = document.getElementById(iconId);
+  if (icon) icon.className = "fas fa-eye-slash";
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+async function copyPassword(inputId, buttonId) {
+  const input = document.getElementById(inputId);
+  const btn = document.getElementById(buttonId);
+  if (!input || !input.value) return;
+  try {
+    await navigator.clipboard.writeText(input.value);
+  } catch (e) {
+    input.select();
+    document.execCommand("copy");
+  }
+  if (btn) {
+    const old = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copiata';
+    setTimeout(() => (btn.innerHTML = old), 1500);
+  }
+}
+
 function setupPasswordValidation() {
   const passwordInput = document.getElementById("password");
   const editPasswordInput = document.getElementById("editPassword");
@@ -93,5 +144,7 @@ function updateRequirementIndicators(requirements) {
 
 // Esposizione globale (togglePassword è chiamata da onclick inline)
 window.togglePassword = togglePassword;
+window.generatePassword = generatePassword;
+window.copyPassword = copyPassword;
 window.setupPasswordValidation = setupPasswordValidation;
 window.validatePasswordStrength = validatePasswordStrength;

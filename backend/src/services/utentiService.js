@@ -4,7 +4,12 @@
 //  Callback-based per restare coerente con sqlite3 e i controlli admin.
 // =============================================
 
-const { hashPassword, validatePassword } = require("../utils/passwordUtils");
+const {
+  hashPassword,
+  validatePassword,
+  encryptPassword,
+  decryptPassword,
+} = require("../utils/passwordUtils");
 const {
   countAdmins,
   canDeleteAdmin,
@@ -48,8 +53,8 @@ function creaUtentiService(db) {
       }
 
       db.run(
-        "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-        [username, hashPassword(password), role],
+        "INSERT INTO users (username, password, password_enc, role) VALUES (?, ?, ?, ?)",
+        [username, hashPassword(password), encryptPassword(password), role],
         (err) => {
           if (err) {
             if (err.code === "SQLITE_CONSTRAINT_UNIQUE")
@@ -87,8 +92,14 @@ function creaUtentiService(db) {
           let query, params;
           if (password) {
             query =
-              "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
-            params = [username, hashPassword(password), role, targetId];
+              "UPDATE users SET username = ?, password = ?, password_enc = ?, role = ? WHERE id = ?";
+            params = [
+              username,
+              hashPassword(password),
+              encryptPassword(password),
+              role,
+              targetId,
+            ];
           } else {
             query = "UPDATE users SET username = ?, role = ? WHERE id = ?";
             params = [username, role, targetId];
@@ -120,6 +131,19 @@ function creaUtentiService(db) {
           esegui();
         }
       });
+    },
+
+    // Restituisce la password attuale (decifrata) o null se non disponibile
+    getPassword(id, callback) {
+      db.get(
+        "SELECT password_enc FROM users WHERE id = ?",
+        [Number.parseInt(id)],
+        (err, row) => {
+          if (err) return callback({ status: 500, error: "Database error" });
+          if (!row) return callback({ status: 404, error: "Utente non trovato" });
+          callback(null, decryptPassword(row.password_enc));
+        },
+      );
     },
 
     // Elimina un utente con vincolo sull'ultimo admin

@@ -249,8 +249,8 @@
 
               <div class="form-field">
                 <label class="form-field-label"
-                  >Nuova password
-                  <span class="optional">(vuoto = invariata)</span></label
+                  >Password
+                  <span class="optional">(password attuale — modificala per cambiarla)</span></label
                 >
                 <div class="form-input-wrap">
                   <i class="fas fa-lock form-input-icon"></i>
@@ -272,6 +272,23 @@
                 </div>
                 <div class="pw-strength-bar">
                   <div class="pw-strength-fill" id="editPasswordStrength"></div>
+                </div>
+                <div class="pw-tools">
+                  <button
+                    type="button"
+                    class="admin-btn admin-btn-outline-primary admin-btn-sm"
+                    onclick="generatePassword('editPassword', 'eyeEdit')"
+                  >
+                    <i class="fas fa-wand-magic-sparkles"></i> Genera
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-btn admin-btn-outline-primary admin-btn-sm"
+                    id="copyEditPwBtn"
+                    onclick="copyPassword('editPassword', 'copyEditPwBtn')"
+                  >
+                    <i class="fas fa-copy"></i> Copia
+                  </button>
                 </div>
               </div>
 

@@ -80,7 +80,31 @@ function loadUsers() {
 function editUser(id, username, role, canChangeRole = true) {
   document.getElementById("editUserId").value = id;
   document.getElementById("editUsername").value = username;
-  document.getElementById("editPassword").value = "";
+  const pwInput = document.getElementById("editPassword");
+  pwInput.value = "";
+  pwInput.type = "text"; // visibile subito
+  const eye = document.getElementById("eyeEdit");
+  if (eye) eye.className = "fas fa-eye-slash";
+  pwInput.placeholder = "Caricamento password…";
+  pwInput.disabled = true;
+  fetch(`/api/users/${id}/password`, { headers: { Accept: "application/json" } })
+    .then((res) => res.json())
+    .then((data) => {
+      pwInput.disabled = false;
+      if (data.password) {
+        pwInput.value = data.password;
+        pwInput.placeholder = "Password";
+      } else {
+        pwInput.placeholder =
+          "Non disponibile — si salva al prossimo login, o impostane una nuova";
+      }
+      validatePasswordStrength(pwInput.value, "editPasswordStrength");
+    })
+    .catch(() => {
+      pwInput.disabled = false;
+      pwInput.placeholder = "Password non disponibile";
+    });
+  validatePasswordStrength("", "editPasswordStrength");
 
   const roleSelect = document.getElementById("editRole");
   roleSelect.value = role;
